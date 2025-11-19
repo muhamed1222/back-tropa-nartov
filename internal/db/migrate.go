@@ -27,30 +27,46 @@ func Migrate(db *gorm.DB) error {
 	}
 
 	// ВЫПОЛНЯЕМ AUTOMIGRATE ПЕРВЫМ - создаем все таблицы
+	// ВАЖНО: Порядок имеет значение! Сначала создаем таблицы без внешних ключей,
+	// затем таблицы, которые на них ссылаются.
 	// log.Println("Creating database tables...")
 	err = db.AutoMigrate(
+		// 1. Сначала базовые таблицы без внешних ключей
 		&models.User{},
-		&models.Route{},
-		&models.Review{},
-		&models.Type{},
-		&models.Category{},
-		&models.Area{},
-		&models.ArticleCategory{},
-		&models.Article{},
-		&models.RouteStop{},
-		&models.Image{},
-		&models.FavoritePlace{},
-		&models.FavoriteRoute{},
-		&models.PassedPlace{},
-		&models.PassedRoute{},
-		&models.Tag{},
+		&models.Type{},      // Сначала типы (на них ссылаются routes)
+		&models.Area{},      // Затем районы (на них ссылаются routes и places)
+		&models.Category{},  // Категории (many-to-many)
+		&models.Tag{},       // Теги (many-to-many)
+		// 2. Затем таблицы с внешними ключами
+		&models.Image{},     // Изображения
+		&models.Route{},     // Маршруты (ссылается на Type и Area)
+		&models.Review{},    // Отзывы (ссылается на Place и Route)
+		&models.RouteStop{}, // Остановки маршрутов
+		// 3. Связующие таблицы (many-to-many и избранное)
 		&models.PlaceTag{},
 		&models.RouteTag{},
 		&models.PlaceCategory{},
 		&models.RouteCategory{},
+		&models.FavoritePlace{},
+		&models.FavoriteRoute{},
+		&models.PassedPlace{},
+		&models.PassedRoute{},
+		// 4. Дополнительные таблицы
+		&models.ArticleCategory{},
+		&models.Article{},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to auto migrate tables: %w", err)
+	}
+
+	// Создаем дефолтные типы, если их нет (для корректной работы внешних ключей)
+	if err := ensureDefaultTypes(db); err != nil {
+		log.Printf("Warning: Failed to ensure default types: %v", err)
+	}
+
+	// Исправляем нарушенные внешние ключи в routes (если есть данные с несуществующими type_id)
+	if err := fixBrokenForeignKeys(db); err != nil {
+		log.Printf("Warning: Failed to fix broken foreign keys: %v", err)
 	}
 
 	// Отдельно мигрируем Place с кастомной логикой
@@ -268,5 +284,72 @@ func migratePlacesTable(db *gorm.DB) error {
 		}
 	}
 
+	return nil
+}
+
+// ensureDefaultTypes создает дефолтные типы маршрутов, если их нет
+func ensureDefaultTypes(db *gorm.DB) error {
+	var count int64
+	db.Model(&models.Type{}).Count(&count)
+	
+	if count == 0 {
+		// Создаем дефолтные типы
+		defaultTypes := []models.Type{
+			{Name: "Пеший поход", Description: "Пешие маршруты по горам и лесам"},
+			{Name: "Веломаршрут", Description: "Велосипедные трассы"},
+			{Name: "Автомобильный", Description: "Маршруты для автомобильных поездок"},
+			{Name: "Комбинированный", Description: "Маршруты с разными видами передвижения"},
+		}
+		
+		for _, t := range defaultTypes {
+			if err := db.FirstOrCreate(&t, models.Type{Name: t.Name}).Error; err != nil {
+				return err
+			}
+		}
+	}
+	
+	return nil
+}
+
+// fixBrokenForeignKeys исправляет записи с несуществующими внешними ключами
+func fixBrokenForeignKeys(db *gorm.DB) error {
+	// Получаем первый тип (дефолтный) для замены несуществующих
+	var defaultType models.Type
+	if err := db.First(&defaultType).Error; err != nil {
+		// Если нет типов, пропускаем
+		return nil
+	}
+	
+	// Исправляем routes с несуществующими type_id
+	result := db.Exec(`
+		UPDATE routes 
+		SET type_id = ? 
+		WHERE type_id NOT IN (SELECT id FROM types)
+		AND type_id IS NOT NULL
+	`, defaultType.ID)
+	
+	if result.Error != nil {
+		return result.Error
+	}
+	
+	// Получаем первый район (дефолтный) для замены несуществующих
+	var defaultArea models.Area
+	if err := db.First(&defaultArea).Error; err != nil {
+		// Если нет районов, пропускаем
+		return nil
+	}
+	
+	// Исправляем routes с несуществующими area_id
+	result = db.Exec(`
+		UPDATE routes 
+		SET area_id = ? 
+		WHERE area_id NOT IN (SELECT id FROM areas)
+		AND area_id IS NOT NULL
+	`, defaultArea.ID)
+	
+	if result.Error != nil {
+		return result.Error
+	}
+	
 	return nil
 }

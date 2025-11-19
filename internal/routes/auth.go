@@ -111,22 +111,39 @@ func SetupAuthRoutes(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 		authGroup.POST("/login", rateLimiter.LoginRateLimit(), func(c *gin.Context) {
 			var req LoginRequest
 			if err := c.ShouldBindJSON(&req); err != nil {
-				c.JSON(400, gin.H{"error": err.Error()})
+				errorMsg := err.Error()
+				// Улучшенная обработка ошибок валидации
+				if strings.Contains(errorMsg, "Email") && strings.Contains(errorMsg, "required") {
+					errorMsg = "Email обязателен для заполнения"
+				} else if strings.Contains(errorMsg, "Email") && strings.Contains(errorMsg, "email") {
+					errorMsg = "Неверный формат email адреса"
+				} else if strings.Contains(errorMsg, "Password") && strings.Contains(errorMsg, "required") {
+					errorMsg = "Пароль обязателен для заполнения"
+				} else if strings.Contains(errorMsg, "Password") && strings.Contains(errorMsg, "min") {
+					errorMsg = "Пароль должен содержать минимум 8 символов"
+				}
+				fmt.Printf("❌ [LOGIN] Ошибка валидации: %s\n", errorMsg)
+				c.JSON(400, gin.H{"error": errorMsg})
 				return
 			}
 
+			fmt.Printf("🔐 [LOGIN] Попытка входа: email=%s\n", req.Email)
+			
 			token, err := authService.Login(req.Email, req.Password)
 			if err != nil {
+				fmt.Printf("❌ [LOGIN] Ошибка входа: %v\n", err)
 				c.JSON(401, gin.H{"error": err.Error()})
 				return
 			}
 
 			var user models.User
 			if err := db.Where("email = ?", req.Email).First(&user).Error; err != nil {
+				fmt.Printf("❌ [LOGIN] Пользователь не найден после успешного логина: %v\n", err)
 				c.JSON(401, gin.H{"error": "Пользователь не найден"})
 				return
 			}
 
+			fmt.Printf("✅ [LOGIN] Успешный вход: id=%d, email=%s\n", user.ID, user.Email)
 			c.JSON(200, gin.H{
 				"token": token,
 				"user": gin.H{
