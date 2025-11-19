@@ -1,0 +1,40 @@
+{
+  "kind": "collectionType",
+  "collectionName": "images",
+  "info": {
+    "singularName": "image",
+    "pluralName": "images",
+    "displayName": "Image",
+    "description": "Изображения для мест"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "url": {
+      "type": "string",
+      "required": true,
+      "maxLength": 500
+    },
+    "alt_text": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "place_id": {
+      "type": "integer",
+      "required": true
+    },
+    "place": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::place.place",
+      "inversedBy": "images"
+    }
+  }
+}
+
