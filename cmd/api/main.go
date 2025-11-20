@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 	"time"
+	"tropa-nartov-backend/internal/auth"
 	"tropa-nartov-backend/internal/config"
 	"tropa-nartov-backend/internal/db"
 	"tropa-nartov-backend/internal/routes"
@@ -43,6 +44,9 @@ func main() {
 	// Инициализируем Gin
 	r := gin.Default()
 
+	// Добавляем ETag middleware для кеширования
+	r.Use(auth.ETagMiddleware())
+
 	// Настройка CORS из конфигурации
 	var allowedOrigins []string
 	if cfg.CORSAllowedOrigins != "" {
@@ -63,9 +67,10 @@ func main() {
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept", "If-None-Match"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
+		ExposeHeaders:    []string{"ETag"},
 	}))
 
 	// Настраиваем маршруты

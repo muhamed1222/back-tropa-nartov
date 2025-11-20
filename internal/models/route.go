@@ -16,7 +16,7 @@ type Route struct {
     Type        Type      `gorm:"foreignKey:TypeID"`
     AreaID      uint      `gorm:"not null"`
     Area        Area      `gorm:"foreignKey:AreaID"`
-    Rating      float32   `gorm:"type:decimal(2,1);default:0"`
+    Rating      float32   `gorm:"type:decimal(3,1);default:3.5"`
     Categories  []Category `gorm:"many2many:route_categories;foreignKey:ID;joinForeignKey:RouteID;References:ID;ReferencesForeignKey:CategoryID"`
     IsActive    bool      `gorm:"default:true"`
     CreatedAt   time.Time `gorm:"default:now()"`

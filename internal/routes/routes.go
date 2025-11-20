@@ -2,105 +2,176 @@ package routes
 
 import (
 	"net/http"
+	"strconv"
 	"tropa-nartov-backend/internal/models"
+	"tropa-nartov-backend/internal/route"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 func SetupRouteRoutes(router *gin.Engine, db *gorm.DB) {
+	routeService := route.NewService(db)
 	routeGroup := router.Group("/routes")
 	{
-		// GET /routes - получить все маршруты
+		// GET /routes - получить все маршруты с пагинацией
 		routeGroup.GET("", func(c *gin.Context) {
-			var routes []models.Route
+			// Парсим фильтры
+			typeIDStrs := c.QueryArray("type_id")
+			areaIDStrs := c.QueryArray("area_id")
+			tagIDStrs := c.QueryArray("tag_id")
 
-			// ИСПРАВЛЕНО: Убрано условие WHERE для тестирования
-			// if err := db.Preload("Type").Preload("Area").Where("is_active = ?", true).Find(&routes).Error; err != nil {
-			if err := db.Preload("Type").Preload("Area").Find(&routes).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": "Ошибка при получении маршрутов",
-				})
+			var typeIDs, areaIDs, tagIDs []uint
+
+			for _, str := range typeIDStrs {
+				if id, err := strconv.ParseUint(str, 10, 32); err == nil {
+					typeIDs = append(typeIDs, uint(id))
+				}
+			}
+			for _, str := range areaIDStrs {
+				if id, err := strconv.ParseUint(str, 10, 32); err == nil {
+					areaIDs = append(areaIDs, uint(id))
+				}
+			}
+			for _, str := range tagIDStrs {
+				if id, err := strconv.ParseUint(str, 10, 32); err == nil {
+					tagIDs = append(tagIDs, uint(id))
+				}
+			}
+
+			// Парсим параметры пагинации
+			limit := 20 // По умолчанию
+			if limitStr := c.Query("limit"); limitStr != "" {
+				if parsed, err := strconv.Atoi(limitStr); err == nil && parsed > 0 {
+					if parsed > 100 {
+						limit = 100 // Максимум 100 элементов
+					} else {
+						limit = parsed
+					}
+				}
+			}
+
+			offset := 0
+			if offsetStr := c.Query("offset"); offsetStr != "" {
+				if parsed, err := strconv.Atoi(offsetStr); err == nil && parsed >= 0 {
+					offset = parsed
+				}
+			}
+
+			// Проверяем, нужен ли легкий формат (DTO)
+			useLightDTO := c.Query("light") == "true"
+
+			// Получаем данные с пагинацией
+			routes, total, err := routeService.List(typeIDs, areaIDs, tagIDs, limit, offset)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 
-			// ДОБАВЛЕНО: Если маршрутов нет в базе, возвращаем тестовые данные
+			// Если маршрутов нет, возвращаем пустой ответ с пагинацией
 			if len(routes) == 0 {
-				// Возвращаем тестовые маршруты для разработки
-				testRoutes := []gin.H{
-					{
-						"id":          1,
-						"name":        "Восхождение на Эльбрус",
-						"description": "Легендарный маршрут к высочайшей точке Европы через живописные ледники и горные перевалы",
-						"overview":    "Маршрут начинается от поселка Терскол и проходит через приют Бочки, скалы Пастухова до западной вершины Эльбруса",
-						"history":     "Первое успешное восхождение на Эльбрус было совершено в 1829 году экспедицией Российской академии наук под руководством генерала Г. А. Эммануэля",
-						"distance":    22.5,
-						"duration":    48.0,
-						"type_id":     1,
-						"area_id":     1,
-						"rating":      4.9,
-						"is_active":   true,
-						"type_name":   "Пеший поход",
-						"area_name":   "Приэльбрусье",
-						"created_at":  "2025-10-31T13:54:35Z",
-						"updated_at":  "2025-10-31T13:54:35Z",
-					},
-					{
-						"id":          2,
-						"name":        "Чегемские водопады",
-						"description": "Путь к величественным водопадам в живописном Чегемском ущелье, известному своими суровыми скалами и бурной рекой",
-						"overview":    "Маршрут проходит вдоль реки Чегем через несколько каскадов водопадов, самый известный из которых - Девичьи косы",
-						"history":     "Чегемское ущелье издавна было заселено балкарцами, о чем свидетельствуют древние склепы и башни",
-						"distance":    8.2,
-						"duration":    4.5,
-						"type_id":     1,
-						"area_id":     4,
-						"rating":      4.7,
-						"is_active":   true,
-						"type_name":   "Пеший поход",
-						"area_name":   "Чегемское ущелье",
-						"created_at":  "2025-10-31T13:54:35Z",
-						"updated_at":  "2025-10-31T13:54:35Z",
-					},
+				response := models.PaginatedResponse{
+					Data:       []interface{}{},
+					Total:      0,
+					Limit:      limit,
+					Offset:     offset,
+					HasMore:    false,
+					NextOffset: nil,
 				}
-				c.JSON(http.StatusOK, testRoutes)
+				c.JSON(http.StatusOK, response)
 				return
 			}
 
-			// Преобразуем в JSON ответ
-			var response []gin.H
-			for _, route := range routes {
-				routeData := gin.H{
-					"id":          route.ID,
-					"name":        route.Name,
-					"description": route.Description,
-					"overview":    route.Overview,
-					"history":     route.History,
-					"distance":    route.Distance,
-					"duration":    route.Duration,
-					"type_id":     route.TypeID,
-					"area_id":     route.AreaID,
-					"rating":      route.Rating,
-					"is_active":   route.IsActive,
-					"created_at":  route.CreatedAt,
-					"updated_at":  route.UpdatedAt,
-				}
+			// Загружаем связанные данные (Type, Area) для всех маршрутов
+			for i := range routes {
+				db.Preload("Type").Preload("Area").First(&routes[i], routes[i].ID)
+			}
 
-				// Добавляем данные о типе если есть
-				if route.Type.ID != 0 {
-					routeData["type_name"] = route.Type.Name
-				} else {
-					routeData["type_name"] = "Пеший поход" // значение по умолчанию
+			// Формируем ответ
+			var data interface{}
+			if useLightDTO {
+				// Преобразуем в легкие DTO
+				items := make([]models.RouteListItem, len(routes))
+				for i, route := range routes {
+					items[i] = models.RouteListItem{
+						ID:          route.ID,
+						Name:        route.Name,
+						Description: route.Description,
+						Distance:    route.Distance,
+						Duration:    route.Duration,
+						TypeID:      route.TypeID,
+						AreaID:      route.AreaID,
+						Rating:      route.Rating,
+						CreatedAt:   route.CreatedAt,
+						UpdatedAt:   route.UpdatedAt,
+					}
+					
+					// Добавляем имена типа и района
+					if route.Type.ID != 0 {
+						items[i].TypeName = route.Type.Name
+					} else {
+						items[i].TypeName = "Пеший поход"
+					}
+					
+					if route.Area.ID != 0 {
+						items[i].AreaName = route.Area.Name
+					} else {
+						items[i].AreaName = "Приэльбрусье"
+					}
 				}
+				data = items
+			} else {
+				// Полный формат (для обратной совместимости)
+				var response []gin.H
+				for _, route := range routes {
+					routeData := gin.H{
+						"id":          route.ID,
+						"name":        route.Name,
+						"description": route.Description,
+						"overview":    route.Overview,
+						"history":     route.History,
+						"distance":    route.Distance,
+						"duration":    route.Duration,
+						"type_id":     route.TypeID,
+						"area_id":     route.AreaID,
+						"rating":      route.Rating,
+						"is_active":   route.IsActive,
+						"created_at":  route.CreatedAt,
+						"updated_at":  route.UpdatedAt,
+					}
 
-				// Добавляем данные о районе если есть
-				if route.Area.ID != 0 {
-					routeData["area_name"] = route.Area.Name
-				} else {
-					routeData["area_name"] = "Приэльбрусье" // значение по умолчанию
+					if route.Type.ID != 0 {
+						routeData["type_name"] = route.Type.Name
+					} else {
+						routeData["type_name"] = "Пеший поход"
+					}
+
+					if route.Area.ID != 0 {
+						routeData["area_name"] = route.Area.Name
+					} else {
+						routeData["area_name"] = "Приэльбрусье"
+					}
+
+					response = append(response, routeData)
 				}
+				data = response
+			}
 
-				response = append(response, routeData)
+			// Формируем ответ с пагинацией
+			hasMore := offset+limit < int(total)
+			var nextOffset *int
+			if hasMore {
+				next := offset + limit
+				nextOffset = &next
+			}
+
+			response := models.PaginatedResponse{
+				Data:       data,
+				Total:      total,
+				Limit:      limit,
+				Offset:     offset,
+				HasMore:    hasMore,
+				NextOffset: nextOffset,
 			}
 
 			c.JSON(http.StatusOK, response)

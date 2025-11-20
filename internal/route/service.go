@@ -74,25 +74,62 @@ func (s *Service) GetByID(id uint) (*models.Route, error) {
 }
 
 // List возвращает список маршрутов с фильтрами (аналогично places)
-func (s *Service) List(typeIDs, areaIDs, tagIDs []uint) ([]models.Route, error) {
+// Поддерживает пагинацию через limit и offset
+func (s *Service) List(typeIDs, areaIDs, tagIDs []uint, limit, offset int) ([]models.Route, int64, error) {
 	var routes []models.Route
+	var total int64
+
+	// Базовый запрос для подсчета общего количества
+	countQuery := s.db.Model(&models.Route{}).Where("is_active = ?", true)
+
+	// Базовый запрос для получения данных
 	query := s.db.Where("is_active = ?", true)
 
 	if len(typeIDs) > 0 {
 		query = query.Where("type_id IN ?", typeIDs)
+		countQuery = countQuery.Where("type_id IN ?", typeIDs)
 	}
 	if len(areaIDs) > 0 {
 		query = query.Where("area_id IN ?", areaIDs)
+		countQuery = countQuery.Where("area_id IN ?", areaIDs)
 	}
 	if len(tagIDs) > 0 {
-		query = query.Joins("JOIN routes_tags ON routes_tags.route_id = routes.id").
-			Where("routes_tags.tag_id IN ?", tagIDs).
-			Group("routes.id")
+		joinQuery := "JOIN routes_tags ON routes_tags.route_id = routes.id"
+		query = query.Joins(joinQuery).Where("routes_tags.tag_id IN ?", tagIDs).Group("routes.id")
+		countQuery = countQuery.Joins(joinQuery).Where("routes_tags.tag_id IN ?", tagIDs)
 	}
 
-	if err := query.Find(&routes).Error; err != nil {
-		return nil, fmt.Errorf("ошибка получения списка маршрутов: %v", err)
+	// Подсчитываем общее количество
+	if err := countQuery.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("ошибка подсчета маршрутов: %v", err)
 	}
+
+	// Применяем пагинацию
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if offset > 0 {
+		query = query.Offset(offset)
+	}
+
+	if err := query.Order("created_at DESC").Find(&routes).Error; err != nil {
+		return nil, 0, fmt.Errorf("ошибка получения списка маршрутов: %v", err)
+	}
+	return routes, total, nil
+}
+
+// ListFull возвращает полный список маршрутов с Preload (для обратной совместимости)
+func (s *Service) ListFull(typeIDs, areaIDs, tagIDs []uint) ([]models.Route, error) {
+	routes, _, err := s.List(typeIDs, areaIDs, tagIDs, 0, 0)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Загружаем связанные данные для каждого маршрута
+	for i := range routes {
+		s.db.Preload("Type").Preload("Area").First(&routes[i], routes[i].ID)
+	}
+	
 	return routes, nil
 }
 

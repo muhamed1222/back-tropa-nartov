@@ -42,8 +42,9 @@ func SetupPlaceRoutes(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	// Группа маршрутов для точек
 	placesGroup := r.Group("/places")
 	{
-		// Список точек с фильтрами
+		// Список точек с фильтрами и пагинацией
 		placesGroup.GET("", func(c *gin.Context) {
+			// Парсим фильтры
 			categoryIDStrs := c.QueryArray("category_id")
 			typeIDStrs := c.QueryArray("type_id")
 			areaIDStrs := c.QueryArray("area_id")
@@ -72,20 +73,91 @@ func SetupPlaceRoutes(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 				}
 			}
 
-			places, err := placeService.List(categoryIDs, typeIDs, areaIDs, tagIDs)
+			// Парсим параметры пагинации
+			limit := 20 // По умолчанию
+			if limitStr := c.Query("limit"); limitStr != "" {
+				if parsed, err := strconv.Atoi(limitStr); err == nil && parsed > 0 {
+					if parsed > 100 {
+						limit = 100 // Максимум 100 элементов
+					} else {
+						limit = parsed
+					}
+				}
+			}
+
+			offset := 0
+			if offsetStr := c.Query("offset"); offsetStr != "" {
+				if parsed, err := strconv.Atoi(offsetStr); err == nil && parsed >= 0 {
+					offset = parsed
+				}
+			}
+
+			// Проверяем, нужен ли легкий формат (DTO)
+			useLightDTO := c.Query("light") == "true"
+
+			// Получаем данные с пагинацией
+			places, total, err := placeService.List(categoryIDs, typeIDs, areaIDs, tagIDs, limit, offset)
 			if err != nil {
 				c.JSON(400, gin.H{"error": err.Error()})
 				return
 			}
 
-			// ДОБАВЛЕНО: Отладочный вывод
-			// log.Printf("Returning %d places to client", len(places))
-			// for i, place := range places {
-			// log.Printf("Place %d: ID=%d, Name='%s', Type='%s', Rating=%.1f",
-			// 	i, place.ID, place.Name, place.Type, place.Rating)
-			// }
+			// Формируем ответ
+			var data interface{}
+			if useLightDTO {
+				// Преобразуем в легкие DTO
+				items := make([]models.PlaceListItem, len(places))
+				for i, place := range places {
+					items[i] = models.PlaceListItem{
+						ID:          place.ID,
+						Name:        place.Name,
+						Type:        place.Type,
+						Description: place.Description,
+						Address:     place.Address,
+						Latitude:    place.Latitude,
+						Longitude:   place.Longitude,
+						Rating:      place.Rating,
+						TypeID:      place.TypeID,
+						AreaID:      place.AreaID,
+						CreatedAt:   place.CreatedAt,
+						UpdatedAt:   place.UpdatedAt,
+					}
+					
+					// Добавляем первое изображение если есть
+					if len(place.Images) > 0 {
+						for _, img := range place.Images {
+							if img.IsActive {
+								firstImg := img.URL
+								items[i].FirstImage = &firstImg
+								break
+							}
+						}
+					}
+				}
+				data = items
+			} else {
+				// Полный формат (для обратной совместимости)
+				data = places
+			}
 
-			c.JSON(200, places)
+			// Формируем ответ с пагинацией
+			hasMore := offset+limit < int(total)
+			var nextOffset *int
+			if hasMore {
+				next := offset + limit
+				nextOffset = &next
+			}
+
+			response := models.PaginatedResponse{
+				Data:       data,
+				Total:      total,
+				Limit:      limit,
+				Offset:     offset,
+				HasMore:    hasMore,
+				NextOffset: nextOffset,
+			}
+
+			c.JSON(200, response)
 		})
 
 		// Получение точки по ID

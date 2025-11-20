@@ -64,48 +64,75 @@ func (s *Service) GetByID(id uint) (*models.Place, error) {
 }
 
 // List возвращает список точек с фильтрами (поддержка нескольких значений)
-// List возвращает список точек с фильтрами (поддержка нескольких значений)
-func (s *Service) List(categoryIDs, typeIDs, areaIDs, tagIDs []uint) ([]models.Place, error) {
+// Поддерживает пагинацию через limit и offset
+func (s *Service) List(categoryIDs, typeIDs, areaIDs, tagIDs []uint, limit, offset int) ([]models.Place, int64, error) {
 	var places []models.Place
+	var total int64
 
-	query := s.db.Preload("Images").Preload("Reviews").Preload("Reviews.User").
-		Where("is_active = ?", true)
+	// Базовый запрос для подсчета общего количества
+	countQuery := s.db.Model(&models.Place{}).Where("is_active = ?", true)
+
+	// Базовый запрос для получения данных (без Preload для производительности в списках)
+	query := s.db.Where("is_active = ?", true)
 
 	// Фильтр по типам (используем новое поле Type вместо TypeID)
 	if len(typeIDs) > 0 {
-		// Если нужно фильтровать по TypeID, используем это
 		query = query.Where("type_id IN ?", typeIDs)
+		countQuery = countQuery.Where("type_id IN ?", typeIDs)
 	}
 
 	// Фильтр по районам
 	if len(areaIDs) > 0 {
 		query = query.Where("area_id IN ?", areaIDs)
+		countQuery = countQuery.Where("area_id IN ?", areaIDs)
 	}
 
 	// Фильтр по категориям (через связь many-to-many)
 	if len(categoryIDs) > 0 {
-		query = query.Joins("JOIN place_categories ON place_categories.place_id = places.id").
-			Where("place_categories.category_id IN ?", categoryIDs)
+		joinQuery := "JOIN place_categories ON place_categories.place_id = places.id"
+		query = query.Joins(joinQuery).Where("place_categories.category_id IN ?", categoryIDs)
+		countQuery = countQuery.Joins(joinQuery).Where("place_categories.category_id IN ?", categoryIDs)
 	}
 
 	// Фильтр по тегам (если используется)
 	if len(tagIDs) > 0 {
-		query = query.Joins("JOIN place_tags ON place_tags.place_id = places.id").
-			Where("place_tags.tag_id IN ?", tagIDs)
+		joinQuery := "JOIN place_tags ON place_tags.place_id = places.id"
+		query = query.Joins(joinQuery).Where("place_tags.tag_id IN ?", tagIDs)
+		countQuery = countQuery.Joins(joinQuery).Where("place_tags.tag_id IN ?", tagIDs)
 	}
 
-	// Выполняем запрос
-	if err := query.Find(&places).Error; err != nil {
-		// fmt.Printf("Database error: %v\n", err)
-		return nil, fmt.Errorf("ошибка получения списка точек: %v", err)
+	// Подсчитываем общее количество
+	if err := countQuery.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("ошибка подсчета точек: %v", err)
 	}
 
-	// fmt.Printf("Found %d places in database:\n", len(places))
-	// for i, place := range places {
-	// fmt.Printf("Place %d: ID=%d, Name='%s', Type='%s', AreaID=%d, Rating=%.1f\n",
-	// i, place.ID, place.Name, place.Type, place.AreaID, place.Rating)
-	// }
-	// fmt.Println("===========================")
+	// Применяем пагинацию
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if offset > 0 {
+		query = query.Offset(offset)
+	}
 
+	// Выполняем запрос (без Preload для списков - загружаем только базовые данные)
+	if err := query.Order("created_at DESC").Find(&places).Error; err != nil {
+		return nil, 0, fmt.Errorf("ошибка получения списка точек: %v", err)
+	}
+
+	return places, total, nil
+}
+
+// ListFull возвращает полный список точек с Preload (для обратной совместимости)
+func (s *Service) ListFull(categoryIDs, typeIDs, areaIDs, tagIDs []uint) ([]models.Place, error) {
+	places, _, err := s.List(categoryIDs, typeIDs, areaIDs, tagIDs, 0, 0)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Загружаем связанные данные для каждого места
+	for i := range places {
+		s.db.Preload("Images").Preload("Reviews").Preload("Reviews.User").First(&places[i], places[i].ID)
+	}
+	
 	return places, nil
 }

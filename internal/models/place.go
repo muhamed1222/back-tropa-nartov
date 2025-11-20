@@ -19,7 +19,7 @@ type Place struct {
 	ContactsEmail string  `gorm:"type:varchar(200)" json:"contacts_email"`
 	Latitude      float64 `gorm:"type:decimal(10,8);not null" json:"latitude"`
 	Longitude     float64 `gorm:"type:decimal(11,8);not null" json:"longitude"`
-	Rating        float32 `gorm:"type:decimal(3,1);default:0" json:"rating"`
+	Rating        float32 `gorm:"type:decimal(3,1);default:3.5" json:"rating"`
 
 	// Связи
 	Images  []Image  `gorm:"foreignKey:PlaceID" json:"images"`

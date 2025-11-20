@@ -128,7 +128,7 @@ func SetupAuthRoutes(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 			}
 
 			fmt.Printf("🔐 [LOGIN] Попытка входа: email=%s\n", req.Email)
-			
+
 			token, err := authService.Login(req.Email, req.Password)
 			if err != nil {
 				fmt.Printf("❌ [LOGIN] Ошибка входа: %v\n", err)
