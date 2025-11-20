@@ -1,0 +1,23 @@
+{
+  "collectionName": "components_route_route_stops",
+  "info": {
+    "displayName": "Остановка маршрута",
+    "description": "Остановка маршрута с местом и порядковым номером",
+    "icon": "map-marker-alt"
+  },
+  "options": {},
+  "attributes": {
+    "place": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::place.place",
+      "required": true
+    },
+    "order_num": {
+      "type": "integer",
+      "required": true,
+      "min": 0
+    }
+  }
+}
+

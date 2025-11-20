@@ -16,6 +16,64 @@ func SetupActivityRoutes(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	activityGroup := r.Group("/user/activity")
 	activityGroup.Use(auth.AuthMiddleware(cfg))
 	{
+		// GET /user/activity/places/statuses - получить статусы посещений для списка мест
+		activityGroup.GET("/places/statuses", func(c *gin.Context) {
+			userID, exists := c.Get("user_id")
+			if !exists {
+				c.JSON(401, gin.H{"error": "Не авторизован"})
+				return
+			}
+
+			userIDUint := userID.(uint)
+
+			// Получаем список placeIds из query параметра
+			placeIDStrs := c.QueryArray("placeIds")
+			if len(placeIDStrs) == 0 {
+				c.JSON(400, gin.H{"error": "Не указаны placeIds"})
+				return
+			}
+
+			var placeIDs []uint
+			for _, str := range placeIDStrs {
+				if id, err := strconv.ParseUint(str, 10, 32); err == nil {
+					placeIDs = append(placeIDs, uint(id))
+				}
+			}
+
+			if len(placeIDs) == 0 {
+				c.JSON(400, gin.H{"error": "Неверные placeIds"})
+				return
+			}
+
+			// Получаем все посещенные места пользователя из списка
+			var passedPlaces []models.PassedPlace
+			if err := db.Where("user_id = ? AND place_id IN ?", userIDUint, placeIDs).Find(&passedPlaces).Error; err != nil {
+				c.JSON(500, gin.H{"error": "Ошибка получения статусов посещений"})
+				return
+			}
+
+			// Формируем map: placeId -> true/false
+			statusMap := make(map[uint]bool)
+			for _, pp := range passedPlaces {
+				statusMap[pp.PlaceID] = true
+			}
+
+			// Добавляем false для мест, которых нет в истории
+			for _, placeID := range placeIDs {
+				if _, exists := statusMap[placeID]; !exists {
+					statusMap[placeID] = false
+				}
+			}
+
+			// Преобразуем map в формат для JSON (ключи как строки)
+			result := make(map[string]bool)
+			for placeID, visited := range statusMap {
+				result[strconv.FormatUint(uint64(placeID), 10)] = visited
+			}
+
+			c.JSON(200, result)
+		})
+
 		// GET /user/activity/places - получить историю посещенных мест
 		activityGroup.GET("/places", func(c *gin.Context) {
 			userID, exists := c.Get("user_id")

@@ -4,7 +4,7 @@
   "info": {
     "singularName": "place",
     "pluralName": "places",
-    "displayName": "Place",
+    "displayName": "Место",
     "description": "Места и достопримечательности"
   },
   "options": {
@@ -17,44 +17,45 @@
       "required": true,
       "maxLength": 200
     },
-    "type_name": {
-      "type": "string",
-      "maxLength": 100
+    "slug": {
+      "type": "uid",
+      "targetField": "name",
+      "required": false
     },
-    "description": {
-      "type": "richtext",
-      "required": true
+    "short_description": {
+      "type": "text",
+      "required": false,
+      "maxLength": 500
     },
-    "overview": {
-      "type": "richtext"
+    "type": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::type.type",
+      "inversedBy": "places"
     },
     "history": {
-      "type": "richtext"
+      "type": "richtext",
+      "required": false
     },
     "address": {
       "type": "string",
-      "required": true,
+      "required": false,
       "maxLength": 500
     },
-    "hours": {
-      "type": "string",
+    "working_hours": {
+      "type": "text",
+      "required": false,
       "maxLength": 200
     },
-    "weekend": {
+    "contacts_phone": {
       "type": "string",
-      "maxLength": 100
+      "required": false,
+      "maxLength": 50
     },
-    "entry": {
+    "contacts_website": {
       "type": "string",
-      "maxLength": 100
-    },
-    "contacts": {
-      "type": "string",
-      "maxLength": 200
-    },
-    "contacts_email": {
-      "type": "email",
-      "maxLength": 200
+      "required": false,
+      "maxLength": 500
     },
     "latitude": {
       "type": "decimal",
@@ -64,36 +65,27 @@
       "type": "decimal",
       "required": true
     },
-    "rating": {
-      "type": "decimal",
-      "default": 0
-    },
-    "opening_hours": {
-      "type": "string",
-      "maxLength": 100
-    },
-    "type_id": {
-      "type": "integer"
-    },
-    "area_id": {
-      "type": "integer",
-      "required": true
-    },
     "is_active": {
       "type": "boolean",
       "default": true
     },
     "images": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::image.image",
-      "mappedBy": "place"
+      "type": "media",
+      "multiple": true,
+      "required": false,
+      "allowedTypes": ["images"]
     },
     "reviews": {
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::review.review",
       "mappedBy": "place"
+    },
+    "area": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::area.area",
+      "inversedBy": "places"
     },
     "categories": {
       "type": "relation",
@@ -104,19 +96,6 @@
       "type": "relation",
       "relation": "manyToMany",
       "target": "api::tag.tag"
-    },
-    "area": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::area.area",
-      "inversedBy": "places"
-    },
-    "type": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::type.type",
-      "inversedBy": "places"
     }
   }
 }
-

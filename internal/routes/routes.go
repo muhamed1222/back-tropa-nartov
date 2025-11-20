@@ -3,6 +3,8 @@ package routes
 import (
 	"net/http"
 	"strconv"
+	"tropa-nartov-backend/internal/auth"
+	"tropa-nartov-backend/internal/config"
 	"tropa-nartov-backend/internal/models"
 	"tropa-nartov-backend/internal/route"
 
@@ -10,7 +12,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func SetupRouteRoutes(router *gin.Engine, db *gorm.DB) {
+func SetupRouteRoutes(router *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	routeService := route.NewService(db)
 	routeGroup := router.Group("/routes")
 	{
@@ -122,37 +124,37 @@ func SetupRouteRoutes(router *gin.Engine, db *gorm.DB) {
 				data = items
 			} else {
 				// Полный формат (для обратной совместимости)
-				var response []gin.H
-				for _, route := range routes {
-					routeData := gin.H{
-						"id":          route.ID,
-						"name":        route.Name,
-						"description": route.Description,
-						"overview":    route.Overview,
-						"history":     route.History,
-						"distance":    route.Distance,
-						"duration":    route.Duration,
-						"type_id":     route.TypeID,
-						"area_id":     route.AreaID,
-						"rating":      route.Rating,
-						"is_active":   route.IsActive,
-						"created_at":  route.CreatedAt,
-						"updated_at":  route.UpdatedAt,
-					}
+			var response []gin.H
+			for _, route := range routes {
+				routeData := gin.H{
+					"id":          route.ID,
+					"name":        route.Name,
+					"description": route.Description,
+					"overview":    route.Overview,
+					"history":     route.History,
+					"distance":    route.Distance,
+					"duration":    route.Duration,
+					"type_id":     route.TypeID,
+					"area_id":     route.AreaID,
+					"rating":      route.Rating,
+					"is_active":   route.IsActive,
+					"created_at":  route.CreatedAt,
+					"updated_at":  route.UpdatedAt,
+				}
 
-					if route.Type.ID != 0 {
-						routeData["type_name"] = route.Type.Name
-					} else {
+				if route.Type.ID != 0 {
+					routeData["type_name"] = route.Type.Name
+				} else {
 						routeData["type_name"] = "Пеший поход"
-					}
+				}
 
-					if route.Area.ID != 0 {
-						routeData["area_name"] = route.Area.Name
-					} else {
+				if route.Area.ID != 0 {
+					routeData["area_name"] = route.Area.Name
+				} else {
 						routeData["area_name"] = "Приэльбрусье"
-					}
+				}
 
-					response = append(response, routeData)
+				response = append(response, routeData)
 				}
 				data = response
 			}
@@ -193,14 +195,39 @@ func SetupRouteRoutes(router *gin.Engine, db *gorm.DB) {
 			})
 		})
 
-		// GET /routes/:id - получить маршрут по ID
+		// GET /routes/:id - получить маршрут по ID с местами
 		routeGroup.GET("/:id", func(c *gin.Context) {
-			id := c.Param("id")
+			idStr := c.Param("id")
+			id, err := strconv.ParseUint(idStr, 10, 32)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "Неверный ID маршрута",
+				})
+				return
+			}
 
-			var route models.Route
-			if err := db.Preload("Type").Preload("Area").Preload("Categories").First(&route, id).Error; err != nil {
+			// Используем service для получения маршрута с остановками
+			route, err := routeService.GetByID(uint(id))
+			if err != nil {
 				c.JSON(http.StatusNotFound, gin.H{
 					"error": "Маршрут не найден",
+				})
+				return
+			}
+
+			// Загружаем остановки (route_stops) с точками, упорядоченные по order_num
+			var stops []models.RouteStop
+			if err := db.Preload("Place").Preload("Place.Images").Where("route_id = ?", route.ID).Order("order_num ASC").Find(&stops).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Ошибка загрузки остановок",
+				})
+				return
+			}
+
+			// Загружаем связанные данные (Type, Area, Categories)
+			if err := db.Preload("Type").Preload("Area").Preload("Categories").First(route, route.ID).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Ошибка загрузки связанных данных",
 				})
 				return
 			}
@@ -255,12 +282,47 @@ func SetupRouteRoutes(router *gin.Engine, db *gorm.DB) {
 				response["categories"] = categories
 			}
 
+			// Добавляем места маршрута (stops)
+			var stopsResponse []gin.H
+			for _, stop := range stops {
+				placeData := gin.H{
+					"id":          stop.Place.ID,
+					"name":        stop.Place.Name,
+					"type":        stop.Place.Type,
+					"description": stop.Place.Description,
+					"address":     stop.Place.Address,
+					"latitude":    stop.Place.Latitude,
+					"longitude":   stop.Place.Longitude,
+					"rating":      stop.Place.Rating,
+				}
+
+				// Добавляем изображения места
+				if len(stop.Place.Images) > 0 {
+					var images []gin.H
+					for _, img := range stop.Place.Images {
+						if img.IsActive {
+							images = append(images, gin.H{
+								"id":  img.ID,
+								"url": img.URL,
+							})
+						}
+					}
+					placeData["images"] = images
+				}
+
+				stopsResponse = append(stopsResponse, gin.H{
+					"place_id":  stop.PlaceID,
+					"order_num": stop.OrderNum,
+					"place":     placeData,
+				})
+			}
+			response["stops"] = stopsResponse
+
 			c.JSON(http.StatusOK, response)
 		})
 
 		// POST /routes - создать маршрут (требует авторизацию)
-		routeGroup.POST("", func(c *gin.Context) {
-			// TODO: Добавить middleware авторизации
+		routeGroup.POST("", auth.AuthMiddleware(cfg), func(c *gin.Context) {
 			var input struct {
 				Name        string  `json:"name" binding:"required"`
 				Description string  `json:"description" binding:"required"`
@@ -271,6 +333,10 @@ func SetupRouteRoutes(router *gin.Engine, db *gorm.DB) {
 				TypeID      uint    `json:"type_id" binding:"required"`
 				AreaID      uint    `json:"area_id" binding:"required"`
 				CategoryIDs []uint  `json:"category_ids"`
+				Stops       []struct {
+					PlaceID  uint `json:"place_id" binding:"required"`
+					OrderNum int  `json:"order_num" binding:"required"`
+				} `json:"stops" binding:"required"`
 			}
 
 			if err := c.ShouldBindJSON(&input); err != nil {
@@ -280,7 +346,29 @@ func SetupRouteRoutes(router *gin.Engine, db *gorm.DB) {
 				return
 			}
 
-			route := models.Route{
+			// Проверяем, что места существуют
+			var placeIDs []uint
+			for _, stop := range input.Stops {
+				placeIDs = append(placeIDs, stop.PlaceID)
+			}
+
+			var placeCount int64
+			if err := db.Model(&models.Place{}).Where("id IN ?", placeIDs).Count(&placeCount).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Ошибка при проверке мест",
+				})
+				return
+			}
+
+			if placeCount != int64(len(placeIDs)) {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "Одно или несколько указанных мест не существуют",
+				})
+				return
+			}
+
+			// Создаем маршрут
+			route := &models.Route{
 				Name:        input.Name,
 				Description: input.Description,
 				Overview:    input.Overview,
@@ -292,16 +380,23 @@ func SetupRouteRoutes(router *gin.Engine, db *gorm.DB) {
 				IsActive:    true,
 			}
 
-			if err := db.Create(&route).Error; err != nil {
+			if err := routeService.Create(route); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": "Ошибка при создании маршрута",
+					"error": "Ошибка при создании маршрута: " + err.Error(),
 				})
 				return
 			}
 
 			// Добавляем категории если указаны
 			if len(input.CategoryIDs) > 0 {
-				if err := db.Model(&route).Association("Categories").Replace(input.CategoryIDs); err != nil {
+				var categories []models.Category
+				if err := db.Where("id IN ?", input.CategoryIDs).Find(&categories).Error; err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": "Ошибка при загрузке категорий",
+					})
+					return
+				}
+				if err := db.Model(route).Association("Categories").Append(categories); err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{
 						"error": "Ошибка при добавлении категорий",
 					})
@@ -309,8 +404,38 @@ func SetupRouteRoutes(router *gin.Engine, db *gorm.DB) {
 				}
 			}
 
+			// Создаем места маршрута (RouteStop)
+			var stops []models.RouteStop
+			for _, stop := range input.Stops {
+				stops = append(stops, models.RouteStop{
+					RouteID:  route.ID,
+					PlaceID:  stop.PlaceID,
+					OrderNum: stop.OrderNum,
+				})
+			}
+
+			if len(stops) > 0 {
+				if err := db.Create(&stops).Error; err != nil {
+					// Откатываем создание маршрута при ошибке
+					db.Delete(route)
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": "Ошибка при создании мест маршрута: " + err.Error(),
+					})
+					return
+				}
+			}
+
+			// Загружаем созданный маршрут с связанными данными
+			if err := db.Preload("Type").Preload("Area").Preload("Categories").First(route, route.ID).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Ошибка при загрузке созданного маршрута",
+				})
+				return
+			}
+
 			c.JSON(http.StatusCreated, gin.H{
 				"message": "Маршрут успешно создан",
+				"id":      route.ID,
 				"route":   route,
 			})
 		})

@@ -4,7 +4,7 @@
   "info": {
     "singularName": "route",
     "pluralName": "routes",
-    "displayName": "Route",
+    "displayName": "Маршрут",
     "description": "Туристические маршруты"
   },
   "options": {
@@ -27,12 +27,25 @@
     "history": {
       "type": "richtext"
     },
-    "distance": {
-      "type": "decimal",
-      "required": true
+    "stops": {
+      "type": "component",
+      "repeatable": true,
+      "component": "route.route-stop",
+      "required": false
     },
-    "duration": {
-      "type": "decimal"
+    "distance_km": {
+      "type": "decimal",
+      "required": false,
+      "min": 0
+    },
+    "duration_hours": {
+      "type": "decimal",
+      "required": false,
+      "min": 0
+    },
+    "places_count": {
+      "type": "integer",
+      "required": false
     },
     "rating": {
       "type": "decimal",

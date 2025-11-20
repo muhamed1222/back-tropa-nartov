@@ -4,7 +4,7 @@
   "info": {
     "singularName": "review",
     "pluralName": "reviews",
-    "displayName": "Review",
+    "displayName": "Отзыв",
     "description": "Отзывы о местах и маршрутах"
   },
   "options": {
@@ -13,8 +13,9 @@
   "pluginOptions": {},
   "attributes": {
     "text": {
-      "type": "richtext",
-      "required": true
+      "type": "text",
+      "required": false,
+      "maxLength": 2000
     },
     "rating": {
       "type": "integer",
@@ -22,16 +23,26 @@
       "min": 1,
       "max": 5
     },
-    "likes": {
-      "type": "integer",
-      "default": 0
+    "user_name": {
+      "type": "string",
+      "required": false,
+      "maxLength": 100
+    },
+    "date": {
+      "type": "datetime",
+      "required": false
     },
     "is_active": {
       "type": "boolean",
       "default": true
     },
     "user_id": {
-      "type": "integer"
+      "type": "integer",
+      "required": false
+    },
+    "likes": {
+      "type": "integer",
+      "default": 0
     },
     "place": {
       "type": "relation",

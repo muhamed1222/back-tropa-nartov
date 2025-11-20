@@ -76,7 +76,7 @@ func main() {
 	// Настраиваем маршруты
 	routes.SetupAuthRoutes(r, dbConnection, cfg)
 	routes.SetupPlaceRoutes(r, dbConnection, cfg)
-	routes.SetupRouteRoutes(r, dbConnection)
+	routes.SetupRouteRoutes(r, dbConnection, cfg)
 	routes.SetupReviewRoutes(r, dbConnection, cfg)
 	routes.SetupFavoriteRoutes(r, dbConnection, cfg)
 	routes.SetupActivityRoutes(r, dbConnection, cfg)

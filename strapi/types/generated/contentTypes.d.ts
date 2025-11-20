@@ -366,7 +366,7 @@ export interface ApiAreaArea extends Schema.CollectionType {
   collectionName: 'areas';
   info: {
     description: '\u0420\u0430\u0439\u043E\u043D\u044B \u0438 \u043E\u0431\u043B\u0430\u0441\u0442\u0438';
-    displayName: 'Area';
+    displayName: '\u041E\u0431\u043B\u0430\u0441\u0442\u044C';
     pluralName: 'areas';
     singularName: 'area';
   };
@@ -405,7 +405,7 @@ export interface ApiCategoryCategory extends Schema.CollectionType {
   collectionName: 'categories';
   info: {
     description: '\u041A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u0438 \u0434\u043B\u044F \u043C\u0435\u0441\u0442 \u0438 \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u043E\u0432';
-    displayName: 'Category';
+    displayName: '\u041A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u044F';
     pluralName: 'categories';
     singularName: 'category';
   };
@@ -452,7 +452,7 @@ export interface ApiImageImage extends Schema.CollectionType {
   collectionName: 'images';
   info: {
     description: '\u0418\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u044F \u0434\u043B\u044F \u043C\u0435\u0441\u0442';
-    displayName: 'Image';
+    displayName: '\u0418\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435';
     pluralName: 'images';
     singularName: 'image';
   };
@@ -498,7 +498,7 @@ export interface ApiPlacePlace extends Schema.CollectionType {
   collectionName: 'places';
   info: {
     description: '\u041C\u0435\u0441\u0442\u0430 \u0438 \u0434\u043E\u0441\u0442\u043E\u043F\u0440\u0438\u043C\u0435\u0447\u0430\u0442\u0435\u043B\u044C\u043D\u043E\u0441\u0442\u0438';
-    displayName: 'Place';
+    displayName: '\u041C\u0435\u0441\u0442\u043E';
     pluralName: 'places';
     singularName: 'place';
   };
@@ -507,24 +507,22 @@ export interface ApiPlacePlace extends Schema.CollectionType {
   };
   attributes: {
     address: Attribute.String &
-      Attribute.Required &
       Attribute.SetMinMaxLength<{
         maxLength: 500;
       }>;
     area: Attribute.Relation<'api::place.place', 'manyToOne', 'api::area.area'>;
-    area_id: Attribute.Integer & Attribute.Required;
     categories: Attribute.Relation<
       'api::place.place',
       'manyToMany',
       'api::category.category'
     >;
-    contacts: Attribute.String &
+    contacts_phone: Attribute.String &
       Attribute.SetMinMaxLength<{
-        maxLength: 200;
+        maxLength: 50;
       }>;
-    contacts_email: Attribute.Email &
+    contacts_website: Attribute.String &
       Attribute.SetMinMaxLength<{
-        maxLength: 200;
+        maxLength: 500;
       }>;
     createdAt: Attribute.DateTime;
     createdBy: Attribute.Relation<
@@ -533,21 +531,8 @@ export interface ApiPlacePlace extends Schema.CollectionType {
       'admin::user'
     > &
       Attribute.Private;
-    description: Attribute.RichText & Attribute.Required;
-    entry: Attribute.String &
-      Attribute.SetMinMaxLength<{
-        maxLength: 100;
-      }>;
     history: Attribute.RichText;
-    hours: Attribute.String &
-      Attribute.SetMinMaxLength<{
-        maxLength: 200;
-      }>;
-    images: Attribute.Relation<
-      'api::place.place',
-      'oneToMany',
-      'api::image.image'
-    >;
+    images: Attribute.Media<'images', true>;
     is_active: Attribute.Boolean & Attribute.DefaultTo<true>;
     latitude: Attribute.Decimal & Attribute.Required;
     longitude: Attribute.Decimal & Attribute.Required;
@@ -556,25 +541,19 @@ export interface ApiPlacePlace extends Schema.CollectionType {
       Attribute.SetMinMaxLength<{
         maxLength: 200;
       }>;
-    opening_hours: Attribute.String &
-      Attribute.SetMinMaxLength<{
-        maxLength: 100;
-      }>;
-    overview: Attribute.RichText;
     publishedAt: Attribute.DateTime;
-    rating: Attribute.Decimal & Attribute.DefaultTo<0>;
     reviews: Attribute.Relation<
       'api::place.place',
       'oneToMany',
       'api::review.review'
     >;
+    short_description: Attribute.Text &
+      Attribute.SetMinMaxLength<{
+        maxLength: 500;
+      }>;
+    slug: Attribute.UID<'api::place.place', 'name'>;
     tags: Attribute.Relation<'api::place.place', 'manyToMany', 'api::tag.tag'>;
     type: Attribute.Relation<'api::place.place', 'manyToOne', 'api::type.type'>;
-    type_id: Attribute.Integer;
-    type_name: Attribute.String &
-      Attribute.SetMinMaxLength<{
-        maxLength: 100;
-      }>;
     updatedAt: Attribute.DateTime;
     updatedBy: Attribute.Relation<
       'api::place.place',
@@ -582,9 +561,9 @@ export interface ApiPlacePlace extends Schema.CollectionType {
       'admin::user'
     > &
       Attribute.Private;
-    weekend: Attribute.String &
+    working_hours: Attribute.Text &
       Attribute.SetMinMaxLength<{
-        maxLength: 100;
+        maxLength: 200;
       }>;
   };
 }
@@ -593,7 +572,7 @@ export interface ApiReviewReview extends Schema.CollectionType {
   collectionName: 'reviews';
   info: {
     description: '\u041E\u0442\u0437\u044B\u0432\u044B \u043E \u043C\u0435\u0441\u0442\u0430\u0445 \u0438 \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u0430\u0445';
-    displayName: 'Review';
+    displayName: '\u041E\u0442\u0437\u044B\u0432';
     pluralName: 'reviews';
     singularName: 'review';
   };
@@ -608,6 +587,7 @@ export interface ApiReviewReview extends Schema.CollectionType {
       'admin::user'
     > &
       Attribute.Private;
+    date: Attribute.DateTime;
     is_active: Attribute.Boolean & Attribute.DefaultTo<true>;
     likes: Attribute.Integer & Attribute.DefaultTo<0>;
     place: Attribute.Relation<
@@ -630,7 +610,10 @@ export interface ApiReviewReview extends Schema.CollectionType {
       'manyToOne',
       'api::route.route'
     >;
-    text: Attribute.RichText & Attribute.Required;
+    text: Attribute.Text &
+      Attribute.SetMinMaxLength<{
+        maxLength: 2000;
+      }>;
     updatedAt: Attribute.DateTime;
     updatedBy: Attribute.Relation<
       'api::review.review',
@@ -639,6 +622,10 @@ export interface ApiReviewReview extends Schema.CollectionType {
     > &
       Attribute.Private;
     user_id: Attribute.Integer;
+    user_name: Attribute.String &
+      Attribute.SetMinMaxLength<{
+        maxLength: 100;
+      }>;
   };
 }
 
@@ -646,7 +633,7 @@ export interface ApiRouteRoute extends Schema.CollectionType {
   collectionName: 'routes';
   info: {
     description: '\u0422\u0443\u0440\u0438\u0441\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0435 \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u044B';
-    displayName: 'Route';
+    displayName: '\u041C\u0430\u0440\u0448\u0440\u0443\u0442';
     pluralName: 'routes';
     singularName: 'route';
   };
@@ -669,8 +656,20 @@ export interface ApiRouteRoute extends Schema.CollectionType {
     > &
       Attribute.Private;
     description: Attribute.RichText & Attribute.Required;
-    distance: Attribute.Decimal & Attribute.Required;
-    duration: Attribute.Decimal;
+    distance_km: Attribute.Decimal &
+      Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      >;
+    duration_hours: Attribute.Decimal &
+      Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      >;
     history: Attribute.RichText;
     is_active: Attribute.Boolean & Attribute.DefaultTo<true>;
     name: Attribute.String &
@@ -679,6 +678,7 @@ export interface ApiRouteRoute extends Schema.CollectionType {
         maxLength: 200;
       }>;
     overview: Attribute.RichText;
+    places_count: Attribute.Integer;
     publishedAt: Attribute.DateTime;
     rating: Attribute.Decimal & Attribute.DefaultTo<0>;
     reviews: Attribute.Relation<
@@ -686,6 +686,7 @@ export interface ApiRouteRoute extends Schema.CollectionType {
       'oneToMany',
       'api::review.review'
     >;
+    stops: Attribute.Component<'route.route-stop', true>;
     tags: Attribute.Relation<'api::route.route', 'manyToMany', 'api::tag.tag'>;
     type: Attribute.Relation<'api::route.route', 'manyToOne', 'api::type.type'>;
     type_id: Attribute.Integer & Attribute.Required;
@@ -703,7 +704,7 @@ export interface ApiTagTag extends Schema.CollectionType {
   collectionName: 'tags';
   info: {
     description: '\u0422\u0435\u0433\u0438 \u0434\u043B\u044F \u043C\u0435\u0441\u0442 \u0438 \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u043E\u0432';
-    displayName: 'Tag';
+    displayName: '\u0422\u0435\u0433';
     pluralName: 'tags';
     singularName: 'tag';
   };
@@ -743,7 +744,7 @@ export interface ApiTypeType extends Schema.CollectionType {
   collectionName: 'types';
   info: {
     description: '\u0422\u0438\u043F\u044B \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u043E\u0432 \u0438 \u043C\u0435\u0441\u0442';
-    displayName: 'Type';
+    displayName: '\u0422\u0438\u043F';
     pluralName: 'types';
     singularName: 'type';
   };
