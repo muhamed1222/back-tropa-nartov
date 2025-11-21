@@ -26,13 +26,13 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-	// Получаем JWT секрет из конфигурации
-	jwtSecret := cfg.JWTSecret
-	if jwtSecret == "" {
+		// Получаем JWT секрет из конфигурации
+		jwtSecret := cfg.JWTSecret
+		if jwtSecret == "" {
 		c.JSON(500, gin.H{"error": "Ошибка конфигурации сервера: JWT_SECRET_KEY не установлен"})
 		c.Abort()
 		return
-	}
+		}
 
 		token, err := jwt.Parse(parts[1], func(token *jwt.Token) (interface{}, error) {
 			// Проверяем метод подписи

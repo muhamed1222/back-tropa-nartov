@@ -78,13 +78,9 @@
       "type": "media",
       "multiple": true,
       "required": false,
-      "allowedTypes": ["images"]
-    },
-    "reviews": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::review.review",
-      "mappedBy": "place"
+      "allowedTypes": [
+        "images"
+      ]
     },
     "area": {
       "type": "relation",
