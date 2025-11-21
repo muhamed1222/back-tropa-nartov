@@ -6,6 +6,7 @@ import (
 	"tropa-nartov-backend/internal/auth"
 	"tropa-nartov-backend/internal/config"
 	"tropa-nartov-backend/internal/models"
+	"tropa-nartov-backend/internal/places"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -25,20 +26,37 @@ func SetupFavoriteRoutes(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 			}
 
 			var favoritePlaces []models.FavoritePlace
-			if err := db.Preload("Place").Preload("Place.Images").
-				Where("user_id = ?", userID).
+			if err := db.Where("user_id = ?", userID).
 				Find(&favoritePlaces).Error; err != nil {
 				c.JSON(500, gin.H{"error": "Ошибка получения избранных мест"})
 				return
 			}
 
-			// Преобразуем в список мест
-			places := make([]models.Place, len(favoritePlaces))
+			// Получаем IDs избранных мест
+			placeIDs := make([]uint, len(favoritePlaces))
 			for i, fp := range favoritePlaces {
-				places[i] = fp.Place
+				placeIDs[i] = fp.PlaceID
 			}
 
-			c.JSON(200, places)
+			// Загружаем места через placeService (аналогично /places endpoint)
+			placeService := places.NewService(db)
+			var placesList []models.Place
+
+			// Загружаем каждое место по ID
+			for _, placeID := range placeIDs {
+				var place models.Place
+				if err := db.Where("id = ?", placeID).First(&place).Error; err != nil {
+					continue
+				}
+				placesList = append(placesList, place)
+			}
+
+			// Загружаем изображения для всех мест (ТОЧНО ТАК ЖЕ, как в /places)
+			for i := range placesList {
+				placeService.LoadImagesForPlace(&placesList[i])
+			}
+
+			c.JSON(200, placesList)
 		})
 
 		// Добавить место в избранное
@@ -306,7 +324,7 @@ func SetupFavoriteRoutes(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 			var request struct {
 				RouteIDs []uint `json:"route_ids"`
 			}
-			
+
 			if err := c.ShouldBindJSON(&request); err != nil {
 				c.JSON(400, gin.H{"error": "Неверный формат данных"})
 				return
@@ -329,11 +347,11 @@ func SetupFavoriteRoutes(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 			// Создаем map с результатами
 			result := make(map[string]bool)
 			favoriteMap := make(map[uint]bool)
-			
+
 			for _, fav := range favorites {
 				favoriteMap[fav.RouteID] = true
 			}
-			
+
 			for _, routeID := range request.RouteIDs {
 				result[strconv.FormatUint(uint64(routeID), 10)] = favoriteMap[routeID]
 			}

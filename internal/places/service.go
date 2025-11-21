@@ -55,18 +55,22 @@ func (s *Service) Delete(id uint) error {
 
 // LoadImagesForPlace загружает изображения из обеих таблиц (images и files через Strapi)
 func (s *Service) LoadImagesForPlace(place *models.Place) error {
+	fmt.Printf("\n[LoadImagesForPlace START] Place ID: %d, Name: %s\n", place.ID, place.Name)
+	
 	// 1. Загружаем из таблицы images (наши изображения)
 	var images []models.Image
-	s.db.Where("place_id = ? AND is_active = ?", place.ID, true).Find(&images)
+	result := s.db.Where("place_id = ? AND is_active = ?", place.ID, true).Find(&images)
+	fmt.Printf("[LoadImagesForPlace] Place ID: %d, images из таблицы images: %d, ошибка: %v\n", place.ID, len(images), result.Error)
 	
 	// 2. Загружаем из таблицы files (изображения из Strapi)
 	var strapiFiles []models.StrapiFile
-	s.db.Table("files").
+	result2 := s.db.Table("files").
 		Joins("JOIN files_related_morphs ON files_related_morphs.file_id = files.id").
 		Where("files_related_morphs.related_id = ?", place.ID).
 		Where("files_related_morphs.related_type = ?", "api::place.place").
 		Where("files_related_morphs.field = ?", "images").
 		Find(&strapiFiles)
+	fmt.Printf("[LoadImagesForPlace] Place ID: %d, файлов из Strapi: %d, ошибка: %v\n", place.ID, len(strapiFiles), result2.Error)
 	
 	// 3. Конвертируем Strapi файлы в формат Image
 	strapiBaseURL := "http://localhost:1337" // TODO: вынести в config
@@ -88,6 +92,7 @@ func (s *Service) LoadImagesForPlace(place *models.Place) error {
 	}
 	
 	place.Images = images
+	fmt.Printf("[LoadImagesForPlace END] Place ID: %d, TOTAL images установлено: %d\n\n", place.ID, len(place.Images))
 	return nil
 }
 
