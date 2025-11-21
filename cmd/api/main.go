@@ -6,35 +6,74 @@ import (
 	"tropa-nartov-backend/internal/auth"
 	"tropa-nartov-backend/internal/config"
 	"tropa-nartov-backend/internal/db"
+	"tropa-nartov-backend/internal/logger"
+	"tropa-nartov-backend/internal/middleware"
 	"tropa-nartov-backend/internal/routes"
+	_ "tropa-nartov-backend/docs" // swagger docs
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	"go.uber.org/zap"
 )
+
+// @title Tropa Nartov API
+// @version 1.0
+// @description REST API для мобильного приложения "Тропа Нартов"
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.email tropanartov@yandex.ru
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8001
+// @BasePath /
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Введите токен в формате: Bearer {token}
 
 func main() {
 	// Загружаем .env файл
 	if err := godotenv.Load(); err != nil {
-		// log.Println("No .env file found")
+		// .env файл опционален в некоторых окружениях
 	}
 
 	// Загружаем конфигурацию
 	cfg, err := config.Load()
 	if err != nil {
-		// log.Fatalf("Failed to load config: %v", err)
+		panic("Failed to load config: " + err.Error())
 	}
+
+	// Инициализируем logger
+	if err := logger.Init(cfg.Environment, cfg.Debug); err != nil {
+		panic("Failed to initialize logger: " + err.Error())
+	}
+	defer logger.Sync()
+
+	logger.Info("Starting Tropa Nartov API",
+		zap.String("environment", cfg.Environment),
+		zap.String("version", "1.0.0"),
+		zap.String("port", cfg.Port),
+	)
 
 	// Подключаемся к БД
 	dbConnection, err := db.Connect(cfg)
 	if err != nil {
-		// log.Fatalf("Failed to connect to database: %v", err)
+		logger.Fatal("Failed to connect to database", zap.Error(err))
 	}
+	logger.Info("Database connected successfully")
 
 	// Выполняем миграции
 	if err := db.Migrate(dbConnection); err != nil {
-		// log.Fatalf("Failed to migrate database: %v", err)
+		logger.Fatal("Failed to migrate database", zap.Error(err))
 	}
+	logger.Info("Database migrations completed")
 
 	// Создаем тестовые данные
 	// if err := createTestData(dbConnection); err != nil {
@@ -46,6 +85,10 @@ func main() {
 
 	// Добавляем ETag middleware для кеширования
 	r.Use(auth.ETagMiddleware())
+
+	// Добавляем глобальный rate limiting (100 запросов в минуту на IP)
+	r.Use(middleware.GlobalRateLimit())
+	logger.Info("Rate limiting enabled", zap.Int("limit", 100), zap.String("period", "1 minute"))
 
 	// Настройка CORS из конфигурации
 	var allowedOrigins []string
@@ -59,55 +102,91 @@ func main() {
 			}
 		}
 	}
-	// Fallback на "*" только если CORSAllowedOrigins пустая или не содержит валидных значений
+	// Проверка: CORS origins должны быть установлены
 	if len(allowedOrigins) == 0 {
-		allowedOrigins = []string{"*"}
+		// В development режиме используем безопасные defaults
+		if cfg.Environment == "development" || cfg.Debug {
+			allowedOrigins = []string{
+				"http://localhost:3000",
+				"http://localhost:8080",
+				"http://localhost:8001",
+			}
+			logger.Warn("CORS_ALLOWED_ORIGINS not set, using development defaults",
+				zap.Strings("origins", allowedOrigins),
+			)
+		} else {
+			logger.Fatal("CORS_ALLOWED_ORIGINS must be set in production environment")
+		}
 	}
+	logger.Info("CORS configured", zap.Strings("allowed_origins", allowedOrigins))
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     allowedOrigins,
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept", "If-None-Match"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
-		ExposeHeaders:    []string{"ETag"},
+		ExposeHeaders:    []string{"ETag", "Content-Length"},
 	}))
 
 	// Настраиваем маршруты
+	logger.Info("Setting up routes...")
 	routes.SetupAuthRoutes(r, dbConnection, cfg)
 	routes.SetupPlaceRoutes(r, dbConnection, cfg)
 	routes.SetupRouteRoutes(r, dbConnection, cfg)
 	routes.SetupReviewRoutes(r, dbConnection, cfg)
 	routes.SetupFavoriteRoutes(r, dbConnection, cfg)
 	routes.SetupActivityRoutes(r, dbConnection, cfg)
+	logger.Info("Routes configured successfully")
+
+	// Swagger documentation endpoint
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	logger.Info("Swagger documentation available at /swagger/index.html")
 
 	// Тестовый эндпоинт
+	// @Summary Health check
+	// @Description Проверка работоспособности API
+	// @Tags health
+	// @Produce json
+	// @Success 200 {object} map[string]interface{}
+	// @Router /ping [get]
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",
+			"timestamp": time.Now().Unix(),
 		})
 	})
 
 	// Запускаем сервер
-	// log.Printf("✅ Server starting on port %s", cfg.Port)
-	// log.Printf("📝 Доступные эндпоинты:")
-	// log.Printf("   POST   /auth/register")
-	// log.Printf("   POST   /auth/login")
-	// log.Printf("   POST   /auth/forgot-password")
-	// log.Printf("   POST   /auth/verify-reset-code")
-	// log.Printf("   POST   /auth/reset-password")
-	// log.Printf("   DELETE /auth/delete-account (protected)")
-	// log.Printf("   POST   /auth/upload-avatar (protected)") // ДОБАВЛЕНО
-	// log.Printf("   DELETE /auth/delete-avatar (protected)") // ДОБАВЛЕНО
-	// log.Printf("   GET    /ping")
-	// log.Printf("   GET    /places")
-	// log.Printf("   GET    /routes")
-	// log.Printf("   GET    /reviews/place/:placeId")
-	// log.Printf("   POST   /reviews (protected)")
-	// log.Printf("   GET    /favorites/places (protected)")
-	// log.Printf("   POST   /favorites/places/:placeId (protected)")
-	// log.Printf("   DELETE /favorites/places/:placeId (protected)")
-	// log.Printf("   GET    /favorites/places/:placeId/status (protected)")
+	logger.Info("Server starting", 
+		zap.String("port", cfg.Port),
+		zap.String("host", cfg.Host),
+	)
+	logger.Info("Available endpoints:",
+		zap.Strings("auth", []string{
+			"POST /auth/register",
+			"POST /auth/login",
+			"POST /auth/forgot-password",
+			"POST /auth/verify-reset-code",
+			"POST /auth/reset-password",
+			"DELETE /auth/delete-account (protected)",
+			"POST /auth/upload-avatar (protected)",
+			"DELETE /auth/delete-avatar (protected)",
+		}),
+		zap.Strings("public", []string{
+			"GET /ping",
+			"GET /places",
+			"GET /routes",
+			"GET /reviews/place/:placeId",
+		}),
+		zap.Strings("protected", []string{
+			"POST /reviews",
+			"GET /favorites/places",
+			"POST /favorites/places/:placeId",
+			"DELETE /favorites/places/:placeId",
+			"GET /favorites/places/:placeId/status",
+		}),
+	)
 	// log.Printf("   GET    /favorites/routes (protected)")
 	// log.Printf("   POST   /favorites/routes/:routeId (protected)")
 	// log.Printf("   DELETE /favorites/routes/:routeId (protected)")

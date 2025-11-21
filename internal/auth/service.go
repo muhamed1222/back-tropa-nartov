@@ -22,8 +22,7 @@ type Service struct {
 func NewService(db *gorm.DB, cfg *config.Config) *Service {
 	jwtSecret := cfg.JWTSecret
 	if jwtSecret == "" {
-		jwtSecret = "tropa-nartov-super-secret-jwt-key-2024-change-in-production"
-		// log.Println("⚠️  Warning: JWT_SECRET_KEY not set, using default (not secure for production!)")
+		panic("FATAL: JWT_SECRET_KEY must be set in environment variables")
 	}
 
 	return &Service{

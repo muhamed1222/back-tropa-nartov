@@ -294,5 +294,51 @@ func SetupFavoriteRoutes(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 
 			c.JSON(200, gin.H{"is_favorite": true})
 		})
+
+		// Массовая проверка статусов маршрутов в избранном
+		favoritesGroup.POST("/routes/statuses", func(c *gin.Context) {
+			userID, exists := c.Get("user_id")
+			if !exists {
+				c.JSON(401, gin.H{"error": "Не авторизован"})
+				return
+			}
+
+			var request struct {
+				RouteIDs []uint `json:"route_ids"`
+			}
+			
+			if err := c.ShouldBindJSON(&request); err != nil {
+				c.JSON(400, gin.H{"error": "Неверный формат данных"})
+				return
+			}
+
+			// Если список пустой, возвращаем пустой объект
+			if len(request.RouteIDs) == 0 {
+				c.JSON(200, gin.H{})
+				return
+			}
+
+			// Получаем все избранные маршруты пользователя из указанного списка
+			var favorites []models.FavoriteRoute
+			if err := db.Where("user_id = ? AND route_id IN ?", userID, request.RouteIDs).
+				Find(&favorites).Error; err != nil {
+				c.JSON(500, gin.H{"error": "Ошибка проверки статусов избранного"})
+				return
+			}
+
+			// Создаем map с результатами
+			result := make(map[string]bool)
+			favoriteMap := make(map[uint]bool)
+			
+			for _, fav := range favorites {
+				favoriteMap[fav.RouteID] = true
+			}
+			
+			for _, routeID := range request.RouteIDs {
+				result[strconv.FormatUint(uint64(routeID), 10)] = favoriteMap[routeID]
+			}
+
+			c.JSON(200, result)
+		})
 	}
 }

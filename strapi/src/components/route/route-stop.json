@@ -2,21 +2,17 @@
   "collectionName": "components_route_route_stops",
   "info": {
     "displayName": "Остановка маршрута",
-    "description": "Остановка маршрута с местом и порядковым номером",
-    "icon": "map-marker-alt"
+    "description": ""
   },
   "options": {},
   "attributes": {
     "place": {
       "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::place.place",
-      "required": true
+      "relation": "oneToOne",
+      "target": "api::place.place"
     },
-    "order_num": {
-      "type": "integer",
-      "required": true,
-      "min": 0
+    "order": {
+      "type": "integer"
     }
   }
 }

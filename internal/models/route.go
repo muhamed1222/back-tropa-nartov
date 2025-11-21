@@ -6,6 +6,7 @@ import (
 
 type Route struct {
     ID          uint      `gorm:"primaryKey"`
+    StrapiID    uint      `gorm:"index;default:null"` // Для синхронизации с Strapi
     Name        string    `gorm:"type:varchar(200);not null"`
     Description string    `gorm:"type:text;not null"`
     Overview    string    `gorm:"type:text"`

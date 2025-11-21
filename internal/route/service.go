@@ -73,9 +73,10 @@ func (s *Service) GetByID(id uint) (*models.Route, error) {
 	return &route, nil
 }
 
-// List возвращает список маршрутов с фильтрами (аналогично places)
-// Поддерживает пагинацию через limit и offset
-func (s *Service) List(typeIDs, areaIDs, tagIDs []uint, limit, offset int) ([]models.Route, int64, error) {
+// List возвращает список маршрутов с фильтрами и пагинацией
+func (s *Service) List(typeIDs, areaIDs, tagIDs []uint, pagination models.PaginationParams) ([]models.Route, int64, error) {
+	limit := pagination.Limit
+	offset := pagination.GetOffset()
 	var routes []models.Route
 	var total int64
 
@@ -120,7 +121,7 @@ func (s *Service) List(typeIDs, areaIDs, tagIDs []uint, limit, offset int) ([]mo
 
 // ListFull возвращает полный список маршрутов с Preload (для обратной совместимости)
 func (s *Service) ListFull(typeIDs, areaIDs, tagIDs []uint) ([]models.Route, error) {
-	routes, _, err := s.List(typeIDs, areaIDs, tagIDs, 0, 0)
+	routes, _, err := s.List(typeIDs, areaIDs, tagIDs, models.PaginationParams{Page: 1, Limit: 0})
 	if err != nil {
 		return nil, err
 	}

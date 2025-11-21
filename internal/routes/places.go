@@ -73,33 +73,36 @@ func SetupPlaceRoutes(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 				}
 			}
 
-			// Парсим параметры пагинации
-			limit := 20 // По умолчанию
-			if limitStr := c.Query("limit"); limitStr != "" {
-				if parsed, err := strconv.Atoi(limitStr); err == nil && parsed > 0 {
-					if parsed > 100 {
-						limit = 100 // Максимум 100 элементов
-					} else {
-						limit = parsed
-					}
-				}
+		// Парсим параметры пагинации
+		page := 1
+		if pageStr := c.Query("page"); pageStr != "" {
+			if parsed, err := strconv.Atoi(pageStr); err == nil && parsed > 0 {
+				page = parsed
 			}
+		}
 
-			offset := 0
-			if offsetStr := c.Query("offset"); offsetStr != "" {
-				if parsed, err := strconv.Atoi(offsetStr); err == nil && parsed >= 0 {
-					offset = parsed
-				}
+		limit := 20 // По умолчанию
+		if limitStr := c.Query("limit"); limitStr != "" {
+			if parsed, err := strconv.Atoi(limitStr); err == nil && parsed > 0 {
+				limit = parsed
 			}
+		}
 
-			// Проверяем, нужен ли легкий формат (DTO)
-			useLightDTO := c.Query("light") == "true"
+		pagination := models.NewPaginationParams(page, limit)
 
-			// Получаем данные с пагинацией
-			places, total, err := placeService.List(categoryIDs, typeIDs, areaIDs, tagIDs, limit, offset)
+		// Проверяем, нужен ли легкий формат (DTO)
+		useLightDTO := c.Query("light") == "true"
+
+		// Получаем данные с пагинацией
+		places, total, err := placeService.List(categoryIDs, typeIDs, areaIDs, tagIDs, pagination)
 			if err != nil {
 				c.JSON(400, gin.H{"error": err.Error()})
 				return
+			}
+
+			// Загружаем изображения для каждого места (из images + files Strapi)
+			for i := range places {
+				placeService.LoadImagesForPlace(&places[i])
 			}
 
 			// Формируем ответ
@@ -135,27 +138,13 @@ func SetupPlaceRoutes(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 					}
 				}
 				data = items
-			} else {
-				// Полный формат (для обратной совместимости)
-				data = places
-			}
+		} else {
+			// Полный формат (для обратной совместимости)
+			data = places
+		}
 
-			// Формируем ответ с пагинацией
-			hasMore := offset+limit < int(total)
-			var nextOffset *int
-			if hasMore {
-				next := offset + limit
-				nextOffset = &next
-			}
-
-			response := models.PaginatedResponse{
-				Data:       data,
-				Total:      total,
-				Limit:      limit,
-				Offset:     offset,
-				HasMore:    hasMore,
-				NextOffset: nextOffset,
-			}
+		// Формируем paginated ответ с новым форматом
+		response := models.NewPaginatedResponse(data, total, pagination)
 
 			c.JSON(200, response)
 		})

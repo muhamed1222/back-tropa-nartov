@@ -6,6 +6,7 @@ import (
 
 type Place struct {
 	ID            uint    `gorm:"primaryKey" json:"id"`
+	StrapiID      uint    `gorm:"index;default:null" json:"strapi_id"` // Для синхронизации с Strapi
 	Name          string  `gorm:"type:varchar(200);not null" json:"name"`
 	Type          string  `gorm:"type:varchar(100)" json:"type"`
 	Description   string  `gorm:"type:text;not null" json:"description"`

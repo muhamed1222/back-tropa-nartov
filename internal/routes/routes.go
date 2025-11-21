@@ -41,48 +41,39 @@ func SetupRouteRoutes(router *gin.Engine, db *gorm.DB, cfg *config.Config) {
 				}
 			}
 
-			// Парсим параметры пагинации
-			limit := 20 // По умолчанию
-			if limitStr := c.Query("limit"); limitStr != "" {
-				if parsed, err := strconv.Atoi(limitStr); err == nil && parsed > 0 {
-					if parsed > 100 {
-						limit = 100 // Максимум 100 элементов
-					} else {
-						limit = parsed
-					}
-				}
+		// Парсим параметры пагинации
+		page := 1
+		if pageStr := c.Query("page"); pageStr != "" {
+			if parsed, err := strconv.Atoi(pageStr); err == nil && parsed > 0 {
+				page = parsed
 			}
+		}
 
-			offset := 0
-			if offsetStr := c.Query("offset"); offsetStr != "" {
-				if parsed, err := strconv.Atoi(offsetStr); err == nil && parsed >= 0 {
-					offset = parsed
-				}
+		limit := 20 // По умолчанию
+		if limitStr := c.Query("limit"); limitStr != "" {
+			if parsed, err := strconv.Atoi(limitStr); err == nil && parsed > 0 {
+				limit = parsed
 			}
+		}
 
-			// Проверяем, нужен ли легкий формат (DTO)
-			useLightDTO := c.Query("light") == "true"
+		pagination := models.NewPaginationParams(page, limit)
 
-			// Получаем данные с пагинацией
-			routes, total, err := routeService.List(typeIDs, areaIDs, tagIDs, limit, offset)
+		// Проверяем, нужен ли легкий формат (DTO)
+		useLightDTO := c.Query("light") == "true"
+
+		// Получаем данные с пагинацией
+		routes, total, err := routeService.List(typeIDs, areaIDs, tagIDs, pagination)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 
-			// Если маршрутов нет, возвращаем пустой ответ с пагинацией
-			if len(routes) == 0 {
-				response := models.PaginatedResponse{
-					Data:       []interface{}{},
-					Total:      0,
-					Limit:      limit,
-					Offset:     offset,
-					HasMore:    false,
-					NextOffset: nil,
-				}
-				c.JSON(http.StatusOK, response)
-				return
-			}
+		// Если маршрутов нет, возвращаем пустой ответ с пагинацией
+		if len(routes) == 0 {
+			response := models.NewPaginatedResponse([]interface{}{}, 0, pagination)
+			c.JSON(http.StatusOK, response)
+			return
+		}
 
 			// Загружаем связанные данные (Type, Area) для всех маршрутов
 			for i := range routes {
@@ -159,24 +150,9 @@ func SetupRouteRoutes(router *gin.Engine, db *gorm.DB, cfg *config.Config) {
 				data = response
 			}
 
-			// Формируем ответ с пагинацией
-			hasMore := offset+limit < int(total)
-			var nextOffset *int
-			if hasMore {
-				next := offset + limit
-				nextOffset = &next
-			}
-
-			response := models.PaginatedResponse{
-				Data:       data,
-				Total:      total,
-				Limit:      limit,
-				Offset:     offset,
-				HasMore:    hasMore,
-				NextOffset: nextOffset,
-			}
-
-			c.JSON(http.StatusOK, response)
+		// Формируем paginated ответ с новым форматом
+		paginatedResponse := models.NewPaginatedResponse(data, total, pagination)
+		c.JSON(http.StatusOK, paginatedResponse)
 		})
 
 		// ДОБАВЛЕНО: Отладочный эндпоинт для проверки всех маршрутов

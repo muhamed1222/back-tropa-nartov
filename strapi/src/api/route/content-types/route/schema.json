@@ -27,6 +27,26 @@
     "history": {
       "type": "richtext"
     },
+    "type": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::type.type",
+      "inversedBy": "routes",
+      "required": true
+    },
+    "area": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::area.area",
+      "inversedBy": "routes",
+      "required": true
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"]
+    },
     "stops": {
       "type": "component",
       "repeatable": true,
@@ -43,42 +63,13 @@
       "required": false,
       "min": 0
     },
-    "places_count": {
-      "type": "integer",
-      "required": false
-    },
-    "rating": {
-      "type": "decimal",
-      "default": 0
-    },
     "is_active": {
       "type": "boolean",
       "default": true
     },
-    "type_id": {
+    "places_count": {
       "type": "integer",
-      "required": true
-    },
-    "area_id": {
-      "type": "integer",
-      "required": true
-    },
-    "type": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::type.type",
-      "inversedBy": "routes"
-    },
-    "area": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::area.area",
-      "inversedBy": "routes"
-    },
-    "categories": {
-      "type": "relation",
-      "relation": "manyToMany",
-      "target": "api::category.category"
+      "required": false
     },
     "reviews": {
       "type": "relation",
@@ -86,10 +77,17 @@
       "target": "api::review.review",
       "mappedBy": "route"
     },
+    "categories": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::category.category",
+      "inversedBy": "routes"
+    },
     "tags": {
       "type": "relation",
       "relation": "manyToMany",
-      "target": "api::tag.tag"
+      "target": "api::tag.tag",
+      "inversedBy": "routes"
     }
   }
 }

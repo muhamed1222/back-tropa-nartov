@@ -26,15 +26,13 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		// Получаем JWT секрет из конфигурации
-		jwtSecret := cfg.JWTSecret
-		if jwtSecret == "" {
-			// Fallback для совместимости (не рекомендуется для production)
-			jwtSecret = "tropa-nartov-super-secret-jwt-key-2024-change-in-production"
-			if cfg.Debug {
-				// log.Println("⚠️  Warning: JWT_SECRET_KEY not set in middleware, using default")
-			}
-		}
+	// Получаем JWT секрет из конфигурации
+	jwtSecret := cfg.JWTSecret
+	if jwtSecret == "" {
+		c.JSON(500, gin.H{"error": "Ошибка конфигурации сервера: JWT_SECRET_KEY не установлен"})
+		c.Abort()
+		return
+	}
 
 		token, err := jwt.Parse(parts[1], func(token *jwt.Token) (interface{}, error) {
 			// Проверяем метод подписи

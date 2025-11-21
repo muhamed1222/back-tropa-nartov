@@ -57,6 +57,11 @@
       "required": false,
       "maxLength": 500
     },
+    "entry": {
+      "type": "text",
+      "required": false,
+      "maxLength": 500
+    },
     "latitude": {
       "type": "decimal",
       "required": true
@@ -90,12 +95,14 @@
     "categories": {
       "type": "relation",
       "relation": "manyToMany",
-      "target": "api::category.category"
+      "target": "api::category.category",
+      "inversedBy": "places"
     },
     "tags": {
       "type": "relation",
       "relation": "manyToMany",
-      "target": "api::tag.tag"
+      "target": "api::tag.tag",
+      "inversedBy": "places"
     }
   }
 }

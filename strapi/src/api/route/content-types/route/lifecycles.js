@@ -121,17 +121,17 @@ function validateStops(stops) {
     throw new Error('В маршруте не должно быть дублирующихся мест');
   }
 
-  // Автоматическая установка order_num, если не указан
+  // Автоматическая установка order, если не указан
   stops.forEach((stop, index) => {
-    if (typeof stop === 'object' && (stop.order_num === undefined || stop.order_num === null)) {
-      stop.order_num = index;
+    if (typeof stop === 'object' && (stop.order === undefined || stop.order === null)) {
+      stop.order = index;
     }
   });
 
-  // Сортировка по order_num
+  // Сортировка по order
   stops.sort((a, b) => {
-    const aOrder = typeof a === 'object' ? (a.order_num ?? 0) : 0;
-    const bOrder = typeof b === 'object' ? (b.order_num ?? 0) : 0;
+    const aOrder = typeof a === 'object' ? (a.order ?? 0) : 0;
+    const bOrder = typeof b === 'object' ? (b.order ?? 0) : 0;
     return aOrder - bOrder;
   });
 }
@@ -196,10 +196,10 @@ async function calculateRouteData(data) {
       );
     }
 
-    // Сортируем места по порядку из stops (по order_num)
+    // Сортируем места по порядку из stops (по order)
     const sortedStops = [...data.stops].sort((a, b) => {
-      const aOrder = typeof a === 'object' ? (a.order_num ?? 0) : 0;
-      const bOrder = typeof b === 'object' ? (b.order_num ?? 0) : 0;
+      const aOrder = typeof a === 'object' ? (a.order ?? 0) : 0;
+      const bOrder = typeof b === 'object' ? (b.order ?? 0) : 0;
       return aOrder - bOrder;
     });
 

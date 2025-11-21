@@ -531,6 +531,10 @@ export interface ApiPlacePlace extends Schema.CollectionType {
       'admin::user'
     > &
       Attribute.Private;
+    entry: Attribute.Text &
+      Attribute.SetMinMaxLength<{
+        maxLength: 500;
+      }>;
     history: Attribute.RichText;
     images: Attribute.Media<'images', true>;
     is_active: Attribute.Boolean & Attribute.DefaultTo<true>;
@@ -641,8 +645,12 @@ export interface ApiRouteRoute extends Schema.CollectionType {
     draftAndPublish: true;
   };
   attributes: {
-    area: Attribute.Relation<'api::route.route', 'manyToOne', 'api::area.area'>;
-    area_id: Attribute.Integer & Attribute.Required;
+    area: Attribute.Relation<
+      'api::route.route',
+      'manyToOne',
+      'api::area.area'
+    > &
+      Attribute.Required;
     categories: Attribute.Relation<
       'api::route.route',
       'manyToMany',
@@ -671,6 +679,7 @@ export interface ApiRouteRoute extends Schema.CollectionType {
         number
       >;
     history: Attribute.RichText;
+    image: Attribute.Media<'images'>;
     is_active: Attribute.Boolean & Attribute.DefaultTo<true>;
     name: Attribute.String &
       Attribute.Required &
@@ -680,7 +689,6 @@ export interface ApiRouteRoute extends Schema.CollectionType {
     overview: Attribute.RichText;
     places_count: Attribute.Integer;
     publishedAt: Attribute.DateTime;
-    rating: Attribute.Decimal & Attribute.DefaultTo<0>;
     reviews: Attribute.Relation<
       'api::route.route',
       'oneToMany',
@@ -688,8 +696,12 @@ export interface ApiRouteRoute extends Schema.CollectionType {
     >;
     stops: Attribute.Component<'route.route-stop', true>;
     tags: Attribute.Relation<'api::route.route', 'manyToMany', 'api::tag.tag'>;
-    type: Attribute.Relation<'api::route.route', 'manyToOne', 'api::type.type'>;
-    type_id: Attribute.Integer & Attribute.Required;
+    type: Attribute.Relation<
+      'api::route.route',
+      'manyToOne',
+      'api::type.type'
+    > &
+      Attribute.Required;
     updatedAt: Attribute.DateTime;
     updatedBy: Attribute.Relation<
       'api::route.route',

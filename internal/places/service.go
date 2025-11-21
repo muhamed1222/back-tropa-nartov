@@ -53,19 +53,62 @@ func (s *Service) Delete(id uint) error {
 	return nil
 }
 
+// LoadImagesForPlace загружает изображения из обеих таблиц (images и files через Strapi)
+func (s *Service) LoadImagesForPlace(place *models.Place) error {
+	// 1. Загружаем из таблицы images (наши изображения)
+	var images []models.Image
+	s.db.Where("place_id = ? AND is_active = ?", place.ID, true).Find(&images)
+	
+	// 2. Загружаем из таблицы files (изображения из Strapi)
+	var strapiFiles []models.StrapiFile
+	s.db.Table("files").
+		Joins("JOIN files_related_morphs ON files_related_morphs.file_id = files.id").
+		Where("files_related_morphs.related_id = ?", place.ID).
+		Where("files_related_morphs.related_type = ?", "api::place.place").
+		Where("files_related_morphs.field = ?", "images").
+		Find(&strapiFiles)
+	
+	// 3. Конвертируем Strapi файлы в формат Image
+	strapiBaseURL := "http://localhost:1337" // TODO: вынести в config
+	for _, file := range strapiFiles {
+		// Если URL начинается с /, добавляем базовый URL Strapi
+		imageURL := file.URL
+		if len(imageURL) > 0 && imageURL[0] == '/' {
+			imageURL = strapiBaseURL + imageURL
+		}
+		
+		images = append(images, models.Image{
+			ID:        file.ID,
+			URL:       imageURL,
+			PlaceID:   place.ID,
+			IsActive:  true,
+			CreatedAt: file.CreatedAt,
+			UpdatedAt: file.UpdatedAt,
+		})
+	}
+	
+	place.Images = images
+	return nil
+}
+
 // GetByID получает точку по ID с отзывами
 func (s *Service) GetByID(id uint) (*models.Place, error) {
 	var place models.Place
-	if err := s.db.Preload("Images").Preload("Reviews").Preload("Reviews.User").
+	if err := s.db.Preload("Reviews").Preload("Reviews.User").
 		Where("id = ? AND is_active = ?", id, true).First(&place).Error; err != nil {
 		return nil, fmt.Errorf("точка не найдена")
 	}
+	
+	// Загружаем изображения из обеих источников
+	s.LoadImagesForPlace(&place)
+	
 	return &place, nil
 }
 
-// List возвращает список точек с фильтрами (поддержка нескольких значений)
-// Поддерживает пагинацию через limit и offset
-func (s *Service) List(categoryIDs, typeIDs, areaIDs, tagIDs []uint, limit, offset int) ([]models.Place, int64, error) {
+// List возвращает список точек с фильтрами и пагинацией
+func (s *Service) List(categoryIDs, typeIDs, areaIDs, tagIDs []uint, pagination models.PaginationParams) ([]models.Place, int64, error) {
+	limit := pagination.Limit
+	offset := pagination.GetOffset()
 	var places []models.Place
 	var total int64
 
@@ -124,14 +167,18 @@ func (s *Service) List(categoryIDs, typeIDs, areaIDs, tagIDs []uint, limit, offs
 
 // ListFull возвращает полный список точек с Preload (для обратной совместимости)
 func (s *Service) ListFull(categoryIDs, typeIDs, areaIDs, tagIDs []uint) ([]models.Place, error) {
-	places, _, err := s.List(categoryIDs, typeIDs, areaIDs, tagIDs, 0, 0)
+	places, _, err := s.List(categoryIDs, typeIDs, areaIDs, tagIDs, models.PaginationParams{Page: 1, Limit: 0})
 	if err != nil {
 		return nil, err
 	}
 	
 	// Загружаем связанные данные для каждого места
 	for i := range places {
-		s.db.Preload("Images").Preload("Reviews").Preload("Reviews.User").First(&places[i], places[i].ID)
+		// Загружаем reviews
+		s.db.Preload("Reviews").Preload("Reviews.User").First(&places[i], places[i].ID)
+		
+		// Загружаем изображения из обеих источников
+		s.LoadImagesForPlace(&places[i])
 	}
 	
 	return places, nil

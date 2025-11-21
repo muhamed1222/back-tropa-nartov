@@ -28,7 +28,7 @@ type Config struct {
 	SMTPUseTLS   bool   `env:"SMTP_USE_TLS" default:"true"`
 
 	// JWT настройки
-	JWTSecret        string `env:"JWT_SECRET_KEY" default:"tropa-nartov-super-secret-jwt-key-2024-change-in-production"`
+	JWTSecret        string `env:"JWT_SECRET_KEY"` // Обязательно: без default для безопасности
 	JWTRefreshSecret string `env:"JWT_REFRESH_SECRET"`
 	JWTExpiresIn     int    `env:"JWT_EXPIRES_IN" default:"24"`
 
