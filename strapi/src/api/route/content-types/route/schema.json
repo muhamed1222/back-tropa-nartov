@@ -39,6 +39,24 @@
       "target": "api::place.place",
       "inversedBy": "routes"
     },
+    "reviews": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::review.review",
+      "mappedBy": "route"
+    },
+    "favorites": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::favorite.favorite",
+      "mappedBy": "route"
+    },
+    "visited_places": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::visited-place.visited-place",
+      "mappedBy": "route"
+    },
     "is_active": {
       "type": "boolean",
       "default": true

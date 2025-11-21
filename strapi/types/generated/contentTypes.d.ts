@@ -440,6 +440,50 @@ export interface ApiCategoryCategory extends Schema.CollectionType {
   };
 }
 
+export interface ApiFavoriteFavorite extends Schema.CollectionType {
+  collectionName: 'favorites';
+  info: {
+    description: '\u0418\u0437\u0431\u0440\u0430\u043D\u043D\u044B\u0435 \u043C\u0435\u0441\u0442\u0430 \u0438 \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u044B \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0435\u0439';
+    displayName: '\u0418\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0435';
+    pluralName: 'favorites';
+    singularName: 'favorite';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Attribute.DateTime;
+    createdBy: Attribute.Relation<
+      'api::favorite.favorite',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+    place: Attribute.Relation<
+      'api::favorite.favorite',
+      'manyToOne',
+      'api::place.place'
+    >;
+    route: Attribute.Relation<
+      'api::favorite.favorite',
+      'manyToOne',
+      'api::route.route'
+    >;
+    updatedAt: Attribute.DateTime;
+    updatedBy: Attribute.Relation<
+      'api::favorite.favorite',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+    user_id: Attribute.String &
+      Attribute.Required &
+      Attribute.SetMinMaxLength<{
+        maxLength: 255;
+      }>;
+  };
+}
+
 export interface ApiPlacePlace extends Schema.CollectionType {
   collectionName: 'places';
   info: {
@@ -469,8 +513,13 @@ export interface ApiPlacePlace extends Schema.CollectionType {
       'admin::user'
     > &
       Attribute.Private;
+    favorites: Attribute.Relation<
+      'api::place.place',
+      'oneToMany',
+      'api::favorite.favorite'
+    >;
     history: Attribute.RichText;
-    image: Attribute.Media<'images'>;
+    images: Attribute.Media<'images', true>;
     is_active: Attribute.Boolean & Attribute.DefaultTo<true>;
     latitude: Attribute.Decimal;
     longitude: Attribute.Decimal;
@@ -484,6 +533,11 @@ export interface ApiPlacePlace extends Schema.CollectionType {
         maxLength: 50;
       }>;
     publishedAt: Attribute.DateTime;
+    reviews: Attribute.Relation<
+      'api::place.place',
+      'oneToMany',
+      'api::review.review'
+    >;
     routes: Attribute.Relation<
       'api::place.place',
       'manyToMany',
@@ -498,6 +552,11 @@ export interface ApiPlacePlace extends Schema.CollectionType {
       'admin::user'
     > &
       Attribute.Private;
+    visited_places: Attribute.Relation<
+      'api::place.place',
+      'oneToMany',
+      'api::visited-place.visited-place'
+    >;
     website: Attribute.String &
       Attribute.SetMinMaxLength<{
         maxLength: 500;
@@ -506,6 +565,64 @@ export interface ApiPlacePlace extends Schema.CollectionType {
       Attribute.SetMinMaxLength<{
         maxLength: 500;
       }>;
+  };
+}
+
+export interface ApiReviewReview extends Schema.CollectionType {
+  collectionName: 'reviews';
+  info: {
+    description: '\u041E\u0442\u0437\u044B\u0432\u044B \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0435\u0439 \u043E \u043C\u0435\u0441\u0442\u0430\u0445 \u0438 \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u0430\u0445';
+    displayName: '\u041E\u0442\u0437\u044B\u0432';
+    pluralName: 'reviews';
+    singularName: 'review';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Attribute.DateTime;
+    createdBy: Attribute.Relation<
+      'api::review.review',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+    ip_address: Attribute.String &
+      Attribute.SetMinMaxLength<{
+        maxLength: 50;
+      }>;
+    place: Attribute.Relation<
+      'api::review.review',
+      'manyToOne',
+      'api::place.place'
+    >;
+    publishedAt: Attribute.DateTime;
+    rating: Attribute.Integer &
+      Attribute.Required &
+      Attribute.SetMinMax<
+        {
+          max: 5;
+          min: 1;
+        },
+        number
+      >;
+    route: Attribute.Relation<
+      'api::review.review',
+      'manyToOne',
+      'api::route.route'
+    >;
+    text: Attribute.Text &
+      Attribute.Required &
+      Attribute.SetMinMaxLength<{
+        maxLength: 1000;
+      }>;
+    updatedAt: Attribute.DateTime;
+    updatedBy: Attribute.Relation<
+      'api::review.review',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
   };
 }
 
@@ -576,6 +693,11 @@ export interface ApiRouteRoute extends Schema.CollectionType {
       Attribute.SetMinMaxLength<{
         maxLength: 500;
       }>;
+    favorites: Attribute.Relation<
+      'api::route.route',
+      'oneToMany',
+      'api::favorite.favorite'
+    >;
     is_active: Attribute.Boolean & Attribute.DefaultTo<true>;
     name: Attribute.String &
       Attribute.Required &
@@ -588,6 +710,11 @@ export interface ApiRouteRoute extends Schema.CollectionType {
       'api::place.place'
     >;
     publishedAt: Attribute.DateTime;
+    reviews: Attribute.Relation<
+      'api::route.route',
+      'oneToMany',
+      'api::review.review'
+    >;
     route_type: Attribute.Relation<
       'api::route.route',
       'manyToOne',
@@ -601,6 +728,11 @@ export interface ApiRouteRoute extends Schema.CollectionType {
       'admin::user'
     > &
       Attribute.Private;
+    visited_places: Attribute.Relation<
+      'api::route.route',
+      'oneToMany',
+      'api::visited-place.visited-place'
+    >;
   };
 }
 
@@ -636,6 +768,51 @@ export interface ApiTagTag extends Schema.CollectionType {
     updatedAt: Attribute.DateTime;
     updatedBy: Attribute.Relation<'api::tag.tag', 'oneToOne', 'admin::user'> &
       Attribute.Private;
+  };
+}
+
+export interface ApiVisitedPlaceVisitedPlace extends Schema.CollectionType {
+  collectionName: 'visited_places';
+  info: {
+    description: '\u0418\u0441\u0442\u043E\u0440\u0438\u044F \u043F\u043E\u0441\u0435\u0449\u0435\u043D\u0438\u0439 \u043C\u0435\u0441\u0442 \u0438 \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u043E\u0432 \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F\u043C\u0438';
+    displayName: '\u0418\u0441\u0442\u043E\u0440\u0438\u044F \u043F\u043E\u0441\u0435\u0449\u0435\u043D\u0438\u0439';
+    pluralName: 'visited-places';
+    singularName: 'visited-place';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Attribute.DateTime;
+    createdBy: Attribute.Relation<
+      'api::visited-place.visited-place',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+    place: Attribute.Relation<
+      'api::visited-place.visited-place',
+      'manyToOne',
+      'api::place.place'
+    >;
+    route: Attribute.Relation<
+      'api::visited-place.visited-place',
+      'manyToOne',
+      'api::route.route'
+    >;
+    updatedAt: Attribute.DateTime;
+    updatedBy: Attribute.Relation<
+      'api::visited-place.visited-place',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+    user_id: Attribute.String &
+      Attribute.Required &
+      Attribute.SetMinMaxLength<{
+        maxLength: 255;
+      }>;
+    visited_at: Attribute.DateTime;
   };
 }
 
@@ -1077,10 +1254,13 @@ declare module '@strapi/types' {
       'admin::user': AdminUser;
       'api::area.area': ApiAreaArea;
       'api::category.category': ApiCategoryCategory;
+      'api::favorite.favorite': ApiFavoriteFavorite;
       'api::place.place': ApiPlacePlace;
+      'api::review.review': ApiReviewReview;
       'api::route-type.route-type': ApiRouteTypeRouteType;
       'api::route.route': ApiRouteRoute;
       'api::tag.tag': ApiTagTag;
+      'api::visited-place.visited-place': ApiVisitedPlaceVisitedPlace;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;

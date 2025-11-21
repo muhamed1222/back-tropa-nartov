@@ -22,9 +22,9 @@
       "targetField": "name",
       "required": true
     },
-    "image": {
+    "images": {
       "type": "media",
-      "multiple": false,
+      "multiple": true,
       "required": false,
       "allowedTypes": ["images"]
     },
@@ -83,6 +83,24 @@
       "relation": "manyToMany",
       "target": "api::route.route",
       "mappedBy": "places"
+    },
+    "reviews": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::review.review",
+      "mappedBy": "place"
+    },
+    "favorites": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::favorite.favorite",
+      "mappedBy": "place"
+    },
+    "visited_places": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::visited-place.visited-place",
+      "mappedBy": "place"
     },
     "is_active": {
       "type": "boolean",
