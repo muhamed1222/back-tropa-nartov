@@ -20,18 +20,13 @@
     "slug": {
       "type": "uid",
       "targetField": "name",
-      "required": false
+      "required": true
     },
-    "short_description": {
-      "type": "text",
+    "image": {
+      "type": "media",
+      "multiple": false,
       "required": false,
-      "maxLength": 500
-    },
-    "type": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::type.type",
-      "inversedBy": "places"
+      "allowedTypes": ["images"]
     },
     "history": {
       "type": "richtext",
@@ -42,45 +37,28 @@
       "required": false,
       "maxLength": 500
     },
+    "latitude": {
+      "type": "decimal",
+      "required": false
+    },
+    "longitude": {
+      "type": "decimal",
+      "required": false
+    },
     "working_hours": {
       "type": "text",
       "required": false,
-      "maxLength": 200
+      "maxLength": 500
     },
-    "contacts_phone": {
+    "phone": {
       "type": "string",
       "required": false,
       "maxLength": 50
     },
-    "contacts_website": {
+    "website": {
       "type": "string",
       "required": false,
       "maxLength": 500
-    },
-    "entry": {
-      "type": "text",
-      "required": false,
-      "maxLength": 500
-    },
-    "latitude": {
-      "type": "decimal",
-      "required": true
-    },
-    "longitude": {
-      "type": "decimal",
-      "required": true
-    },
-    "is_active": {
-      "type": "boolean",
-      "default": true
-    },
-    "images": {
-      "type": "media",
-      "multiple": true,
-      "required": false,
-      "allowedTypes": [
-        "images"
-      ]
     },
     "area": {
       "type": "relation",
@@ -99,6 +77,17 @@
       "relation": "manyToMany",
       "target": "api::tag.tag",
       "inversedBy": "places"
+    },
+    "routes": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::route.route",
+      "mappedBy": "places"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
     }
   }
 }
+

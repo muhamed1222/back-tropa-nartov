@@ -17,73 +17,32 @@
       "required": true,
       "maxLength": 200
     },
+    "slug": {
+      "type": "uid",
+      "targetField": "name",
+      "required": true
+    },
     "description": {
-      "type": "richtext",
-      "required": true
+      "type": "text",
+      "required": false,
+      "maxLength": 500
     },
-    "overview": {
-      "type": "richtext"
-    },
-    "history": {
-      "type": "richtext"
-    },
-    "type": {
+    "route_type": {
       "type": "relation",
       "relation": "manyToOne",
-      "target": "api::type.type",
-      "inversedBy": "routes",
-      "required": true
+      "target": "api::route-type.route-type",
+      "inversedBy": "routes"
     },
-    "area": {
+    "places": {
       "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::area.area",
-      "inversedBy": "routes",
-      "required": true
-    },
-    "image": {
-      "type": "media",
-      "multiple": false,
-      "required": false,
-      "allowedTypes": [
-        "images"
-      ]
-    },
-    "stops": {
-      "type": "component",
-      "repeatable": true,
-      "component": "route.route-stop",
-      "required": false
-    },
-    "distance_km": {
-      "type": "decimal",
-      "required": false,
-      "min": 0
-    },
-    "duration_hours": {
-      "type": "decimal",
-      "required": false,
-      "min": 0
+      "relation": "manyToMany",
+      "target": "api::place.place",
+      "inversedBy": "routes"
     },
     "is_active": {
       "type": "boolean",
       "default": true
-    },
-    "places_count": {
-      "type": "integer",
-      "required": false
-    },
-    "categories": {
-      "type": "relation",
-      "relation": "manyToMany",
-      "target": "api::category.category",
-      "inversedBy": "routes"
-    },
-    "tags": {
-      "type": "relation",
-      "relation": "manyToMany",
-      "target": "api::tag.tag",
-      "inversedBy": "routes"
     }
   }
 }
+

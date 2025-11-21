@@ -365,36 +365,32 @@ export interface AdminUser extends Schema.CollectionType {
 export interface ApiAreaArea extends Schema.CollectionType {
   collectionName: 'areas';
   info: {
-    description: '\u0420\u0430\u0439\u043E\u043D\u044B \u0438 \u043E\u0431\u043B\u0430\u0441\u0442\u0438';
-    displayName: '\u041E\u0431\u043B\u0430\u0441\u0442\u044C';
+    description: '\u0420\u0430\u0439\u043E\u043D\u044B \u041A\u0430\u0431\u0430\u0440\u0434\u0438\u043D\u043E-\u0411\u0430\u043B\u043A\u0430\u0440\u0438\u0438 \u0434\u043B\u044F \u0444\u0438\u043B\u044C\u0442\u0440\u0430\u0446\u0438\u0438';
+    displayName: '\u0420\u0430\u0439\u043E\u043D';
     pluralName: 'areas';
     singularName: 'area';
   };
   options: {
-    draftAndPublish: true;
+    draftAndPublish: false;
   };
   attributes: {
     createdAt: Attribute.DateTime;
     createdBy: Attribute.Relation<'api::area.area', 'oneToOne', 'admin::user'> &
       Attribute.Private;
-    description: Attribute.RichText;
+    is_active: Attribute.Boolean & Attribute.DefaultTo<true>;
     name: Attribute.String &
       Attribute.Required &
       Attribute.Unique &
       Attribute.SetMinMaxLength<{
         maxLength: 100;
       }>;
+    order: Attribute.Integer & Attribute.DefaultTo<0>;
     places: Attribute.Relation<
       'api::area.area',
       'oneToMany',
       'api::place.place'
     >;
-    publishedAt: Attribute.DateTime;
-    routes: Attribute.Relation<
-      'api::area.area',
-      'oneToMany',
-      'api::route.route'
-    >;
+    slug: Attribute.UID<'api::area.area', 'name'> & Attribute.Required;
     updatedAt: Attribute.DateTime;
     updatedBy: Attribute.Relation<'api::area.area', 'oneToOne', 'admin::user'> &
       Attribute.Private;
@@ -404,13 +400,13 @@ export interface ApiAreaArea extends Schema.CollectionType {
 export interface ApiCategoryCategory extends Schema.CollectionType {
   collectionName: 'categories';
   info: {
-    description: '\u041A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u0438 \u0434\u043B\u044F \u043C\u0435\u0441\u0442 \u0438 \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u043E\u0432';
+    description: '\u041A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u0438 \u0442\u0443\u0440\u0438\u0437\u043C\u0430 \u0434\u043B\u044F \u0444\u0438\u043B\u044C\u0442\u0440\u0430\u0446\u0438\u0438';
     displayName: '\u041A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u044F';
     pluralName: 'categories';
     singularName: 'category';
   };
   options: {
-    draftAndPublish: true;
+    draftAndPublish: false;
   };
   attributes: {
     createdAt: Attribute.DateTime;
@@ -420,24 +416,20 @@ export interface ApiCategoryCategory extends Schema.CollectionType {
       'admin::user'
     > &
       Attribute.Private;
-    description: Attribute.RichText;
+    is_active: Attribute.Boolean & Attribute.DefaultTo<true>;
     name: Attribute.String &
       Attribute.Required &
       Attribute.Unique &
       Attribute.SetMinMaxLength<{
         maxLength: 100;
       }>;
+    order: Attribute.Integer & Attribute.DefaultTo<0>;
     places: Attribute.Relation<
       'api::category.category',
       'manyToMany',
       'api::place.place'
     >;
-    publishedAt: Attribute.DateTime;
-    routes: Attribute.Relation<
-      'api::category.category',
-      'manyToMany',
-      'api::route.route'
-    >;
+    slug: Attribute.UID<'api::category.category', 'name'> & Attribute.Required;
     updatedAt: Attribute.DateTime;
     updatedBy: Attribute.Relation<
       'api::category.category',
@@ -445,52 +437,6 @@ export interface ApiCategoryCategory extends Schema.CollectionType {
       'admin::user'
     > &
       Attribute.Private;
-  };
-}
-
-export interface ApiImageImage extends Schema.CollectionType {
-  collectionName: 'images';
-  info: {
-    description: '\u0418\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u044F \u0434\u043B\u044F \u043C\u0435\u0441\u0442';
-    displayName: '\u0418\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435';
-    pluralName: 'images';
-    singularName: 'image';
-  };
-  options: {
-    draftAndPublish: true;
-  };
-  attributes: {
-    alt_text: Attribute.String &
-      Attribute.SetMinMaxLength<{
-        maxLength: 200;
-      }>;
-    createdAt: Attribute.DateTime;
-    createdBy: Attribute.Relation<
-      'api::image.image',
-      'oneToOne',
-      'admin::user'
-    > &
-      Attribute.Private;
-    is_active: Attribute.Boolean & Attribute.DefaultTo<true>;
-    place: Attribute.Relation<
-      'api::image.image',
-      'manyToOne',
-      'api::place.place'
-    >;
-    place_id: Attribute.Integer & Attribute.Required;
-    publishedAt: Attribute.DateTime;
-    updatedAt: Attribute.DateTime;
-    updatedBy: Attribute.Relation<
-      'api::image.image',
-      'oneToOne',
-      'admin::user'
-    > &
-      Attribute.Private;
-    url: Attribute.String &
-      Attribute.Required &
-      Attribute.SetMinMaxLength<{
-        maxLength: 500;
-      }>;
   };
 }
 
@@ -516,14 +462,6 @@ export interface ApiPlacePlace extends Schema.CollectionType {
       'manyToMany',
       'api::category.category'
     >;
-    contacts_phone: Attribute.String &
-      Attribute.SetMinMaxLength<{
-        maxLength: 50;
-      }>;
-    contacts_website: Attribute.String &
-      Attribute.SetMinMaxLength<{
-        maxLength: 500;
-      }>;
     createdAt: Attribute.DateTime;
     createdBy: Attribute.Relation<
       'api::place.place',
@@ -531,33 +469,28 @@ export interface ApiPlacePlace extends Schema.CollectionType {
       'admin::user'
     > &
       Attribute.Private;
-    entry: Attribute.Text &
-      Attribute.SetMinMaxLength<{
-        maxLength: 500;
-      }>;
     history: Attribute.RichText;
-    images: Attribute.Media<'images', true>;
+    image: Attribute.Media<'images'>;
     is_active: Attribute.Boolean & Attribute.DefaultTo<true>;
-    latitude: Attribute.Decimal & Attribute.Required;
-    longitude: Attribute.Decimal & Attribute.Required;
+    latitude: Attribute.Decimal;
+    longitude: Attribute.Decimal;
     name: Attribute.String &
       Attribute.Required &
       Attribute.SetMinMaxLength<{
         maxLength: 200;
       }>;
-    publishedAt: Attribute.DateTime;
-    reviews: Attribute.Relation<
-      'api::place.place',
-      'oneToMany',
-      'api::review.review'
-    >;
-    short_description: Attribute.Text &
+    phone: Attribute.String &
       Attribute.SetMinMaxLength<{
-        maxLength: 500;
+        maxLength: 50;
       }>;
-    slug: Attribute.UID<'api::place.place', 'name'>;
+    publishedAt: Attribute.DateTime;
+    routes: Attribute.Relation<
+      'api::place.place',
+      'manyToMany',
+      'api::route.route'
+    >;
+    slug: Attribute.UID<'api::place.place', 'name'> & Attribute.Required;
     tags: Attribute.Relation<'api::place.place', 'manyToMany', 'api::tag.tag'>;
-    type: Attribute.Relation<'api::place.place', 'manyToOne', 'api::type.type'>;
     updatedAt: Attribute.DateTime;
     updatedBy: Attribute.Relation<
       'api::place.place',
@@ -565,71 +498,58 @@ export interface ApiPlacePlace extends Schema.CollectionType {
       'admin::user'
     > &
       Attribute.Private;
+    website: Attribute.String &
+      Attribute.SetMinMaxLength<{
+        maxLength: 500;
+      }>;
     working_hours: Attribute.Text &
       Attribute.SetMinMaxLength<{
-        maxLength: 200;
+        maxLength: 500;
       }>;
   };
 }
 
-export interface ApiReviewReview extends Schema.CollectionType {
-  collectionName: 'reviews';
+export interface ApiRouteTypeRouteType extends Schema.CollectionType {
+  collectionName: 'route_types';
   info: {
-    description: '\u041E\u0442\u0437\u044B\u0432\u044B \u043E \u043C\u0435\u0441\u0442\u0430\u0445 \u0438 \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u0430\u0445';
-    displayName: '\u041E\u0442\u0437\u044B\u0432';
-    pluralName: 'reviews';
-    singularName: 'review';
+    description: '\u0422\u0438\u043F\u044B \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u043E\u0432 \u0434\u043B\u044F \u0444\u0438\u043B\u044C\u0442\u0440\u0430\u0446\u0438\u0438 (\u043F\u0435\u0448\u0438\u0439, \u0430\u0432\u0442\u043E \u0438 \u0442.\u0434.)';
+    displayName: '\u0422\u0438\u043F \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u0430';
+    pluralName: 'route-types';
+    singularName: 'route-type';
   };
   options: {
-    draftAndPublish: true;
+    draftAndPublish: false;
   };
   attributes: {
     createdAt: Attribute.DateTime;
     createdBy: Attribute.Relation<
-      'api::review.review',
+      'api::route-type.route-type',
       'oneToOne',
       'admin::user'
     > &
       Attribute.Private;
-    date: Attribute.DateTime;
     is_active: Attribute.Boolean & Attribute.DefaultTo<true>;
-    likes: Attribute.Integer & Attribute.DefaultTo<0>;
-    place: Attribute.Relation<
-      'api::review.review',
-      'manyToOne',
-      'api::place.place'
-    >;
-    publishedAt: Attribute.DateTime;
-    rating: Attribute.Integer &
+    name: Attribute.String &
       Attribute.Required &
-      Attribute.SetMinMax<
-        {
-          max: 5;
-          min: 1;
-        },
-        number
-      >;
-    route: Attribute.Relation<
-      'api::review.review',
-      'manyToOne',
-      'api::route.route'
-    >;
-    text: Attribute.Text &
-      Attribute.SetMinMaxLength<{
-        maxLength: 2000;
-      }>;
-    updatedAt: Attribute.DateTime;
-    updatedBy: Attribute.Relation<
-      'api::review.review',
-      'oneToOne',
-      'admin::user'
-    > &
-      Attribute.Private;
-    user_id: Attribute.Integer;
-    user_name: Attribute.String &
+      Attribute.Unique &
       Attribute.SetMinMaxLength<{
         maxLength: 100;
       }>;
+    order: Attribute.Integer & Attribute.DefaultTo<0>;
+    routes: Attribute.Relation<
+      'api::route-type.route-type',
+      'oneToMany',
+      'api::route.route'
+    >;
+    slug: Attribute.UID<'api::route-type.route-type', 'name'> &
+      Attribute.Required;
+    updatedAt: Attribute.DateTime;
+    updatedBy: Attribute.Relation<
+      'api::route-type.route-type',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
   };
 }
 
@@ -645,17 +565,6 @@ export interface ApiRouteRoute extends Schema.CollectionType {
     draftAndPublish: true;
   };
   attributes: {
-    area: Attribute.Relation<
-      'api::route.route',
-      'manyToOne',
-      'api::area.area'
-    > &
-      Attribute.Required;
-    categories: Attribute.Relation<
-      'api::route.route',
-      'manyToMany',
-      'api::category.category'
-    >;
     createdAt: Attribute.DateTime;
     createdBy: Attribute.Relation<
       'api::route.route',
@@ -663,45 +572,28 @@ export interface ApiRouteRoute extends Schema.CollectionType {
       'admin::user'
     > &
       Attribute.Private;
-    description: Attribute.RichText & Attribute.Required;
-    distance_km: Attribute.Decimal &
-      Attribute.SetMinMax<
-        {
-          min: 0;
-        },
-        number
-      >;
-    duration_hours: Attribute.Decimal &
-      Attribute.SetMinMax<
-        {
-          min: 0;
-        },
-        number
-      >;
-    history: Attribute.RichText;
-    image: Attribute.Media<'images'>;
+    description: Attribute.Text &
+      Attribute.SetMinMaxLength<{
+        maxLength: 500;
+      }>;
     is_active: Attribute.Boolean & Attribute.DefaultTo<true>;
     name: Attribute.String &
       Attribute.Required &
       Attribute.SetMinMaxLength<{
         maxLength: 200;
       }>;
-    overview: Attribute.RichText;
-    places_count: Attribute.Integer;
-    publishedAt: Attribute.DateTime;
-    reviews: Attribute.Relation<
+    places: Attribute.Relation<
       'api::route.route',
-      'oneToMany',
-      'api::review.review'
+      'manyToMany',
+      'api::place.place'
     >;
-    stops: Attribute.Component<'route.route-stop', true>;
-    tags: Attribute.Relation<'api::route.route', 'manyToMany', 'api::tag.tag'>;
-    type: Attribute.Relation<
+    publishedAt: Attribute.DateTime;
+    route_type: Attribute.Relation<
       'api::route.route',
       'manyToOne',
-      'api::type.type'
-    > &
-      Attribute.Required;
+      'api::route-type.route-type'
+    >;
+    slug: Attribute.UID<'api::route.route', 'name'> & Attribute.Required;
     updatedAt: Attribute.DateTime;
     updatedBy: Attribute.Relation<
       'api::route.route',
@@ -715,79 +607,34 @@ export interface ApiRouteRoute extends Schema.CollectionType {
 export interface ApiTagTag extends Schema.CollectionType {
   collectionName: 'tags';
   info: {
-    description: '\u0422\u0435\u0433\u0438 \u0434\u043B\u044F \u043C\u0435\u0441\u0442 \u0438 \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u043E\u0432';
+    description: '\u0422\u0435\u0433\u0438 \u0434\u043B\u044F \u0444\u0438\u043B\u044C\u0442\u0440\u0430\u0446\u0438\u0438 \u043C\u0435\u0441\u0442 (\u0433\u043E\u0440\u044B, \u0432\u043E\u0434\u043E\u043F\u0430\u0434, \u0440\u0435\u043A\u0430 \u0438 \u0442.\u0434.)';
     displayName: '\u0422\u0435\u0433';
     pluralName: 'tags';
     singularName: 'tag';
   };
   options: {
-    draftAndPublish: true;
+    draftAndPublish: false;
   };
   attributes: {
     createdAt: Attribute.DateTime;
     createdBy: Attribute.Relation<'api::tag.tag', 'oneToOne', 'admin::user'> &
       Attribute.Private;
-    description: Attribute.RichText;
-    name: Attribute.String &
-      Attribute.Required &
-      Attribute.Unique &
-      Attribute.SetMinMaxLength<{
-        maxLength: 50;
-      }>;
-    places: Attribute.Relation<
-      'api::tag.tag',
-      'manyToMany',
-      'api::place.place'
-    >;
-    publishedAt: Attribute.DateTime;
-    routes: Attribute.Relation<
-      'api::tag.tag',
-      'manyToMany',
-      'api::route.route'
-    >;
-    slug: Attribute.UID<'api::tag.tag', 'name'>;
-    updatedAt: Attribute.DateTime;
-    updatedBy: Attribute.Relation<'api::tag.tag', 'oneToOne', 'admin::user'> &
-      Attribute.Private;
-  };
-}
-
-export interface ApiTypeType extends Schema.CollectionType {
-  collectionName: 'types';
-  info: {
-    description: '\u0422\u0438\u043F\u044B \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u043E\u0432 \u0438 \u043C\u0435\u0441\u0442';
-    displayName: '\u0422\u0438\u043F';
-    pluralName: 'types';
-    singularName: 'type';
-  };
-  options: {
-    draftAndPublish: true;
-  };
-  attributes: {
-    createdAt: Attribute.DateTime;
-    createdBy: Attribute.Relation<'api::type.type', 'oneToOne', 'admin::user'> &
-      Attribute.Private;
-    description: Attribute.RichText;
-    entity_type: Attribute.Enumeration<['place', 'route']> & Attribute.Required;
+    is_active: Attribute.Boolean & Attribute.DefaultTo<true>;
     name: Attribute.String &
       Attribute.Required &
       Attribute.Unique &
       Attribute.SetMinMaxLength<{
         maxLength: 100;
       }>;
+    order: Attribute.Integer & Attribute.DefaultTo<0>;
     places: Attribute.Relation<
-      'api::type.type',
-      'oneToMany',
+      'api::tag.tag',
+      'manyToMany',
       'api::place.place'
     >;
-    publishedAt: Attribute.DateTime;
-    routes: Attribute.Relation<
-      'api::type.type',
-      'oneToMany',
-      'api::route.route'
-    >;
+    slug: Attribute.UID<'api::tag.tag', 'name'> & Attribute.Required;
     updatedAt: Attribute.DateTime;
-    updatedBy: Attribute.Relation<'api::type.type', 'oneToOne', 'admin::user'> &
+    updatedBy: Attribute.Relation<'api::tag.tag', 'oneToOne', 'admin::user'> &
       Attribute.Private;
   };
 }
@@ -1230,12 +1077,10 @@ declare module '@strapi/types' {
       'admin::user': AdminUser;
       'api::area.area': ApiAreaArea;
       'api::category.category': ApiCategoryCategory;
-      'api::image.image': ApiImageImage;
       'api::place.place': ApiPlacePlace;
-      'api::review.review': ApiReviewReview;
+      'api::route-type.route-type': ApiRouteTypeRouteType;
       'api::route.route': ApiRouteRoute;
       'api::tag.tag': ApiTagTag;
-      'api::type.type': ApiTypeType;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;

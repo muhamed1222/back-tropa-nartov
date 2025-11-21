@@ -5,10 +5,10 @@
     "singularName": "category",
     "pluralName": "categories",
     "displayName": "Категория",
-    "description": "Категории для мест и маршрутов"
+    "description": "Категории туризма для фильтрации"
   },
   "options": {
-    "draftAndPublish": true
+    "draftAndPublish": false
   },
   "pluginOptions": {},
   "attributes": {
@@ -18,19 +18,23 @@
       "unique": true,
       "maxLength": 100
     },
-    "description": {
-      "type": "richtext"
+    "slug": {
+      "type": "uid",
+      "targetField": "name",
+      "required": true
+    },
+    "order": {
+      "type": "integer",
+      "default": 0
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
     },
     "places": {
       "type": "relation",
       "relation": "manyToMany",
       "target": "api::place.place",
-      "mappedBy": "categories"
-    },
-    "routes": {
-      "type": "relation",
-      "relation": "manyToMany",
-      "target": "api::route.route",
       "mappedBy": "categories"
     }
   }

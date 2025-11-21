@@ -4,11 +4,11 @@
   "info": {
     "singularName": "area",
     "pluralName": "areas",
-    "displayName": "Область",
-    "description": "Районы и области"
+    "displayName": "Район",
+    "description": "Районы Кабардино-Балкарии для фильтрации"
   },
   "options": {
-    "draftAndPublish": true
+    "draftAndPublish": false
   },
   "pluginOptions": {},
   "attributes": {
@@ -18,19 +18,23 @@
       "unique": true,
       "maxLength": 100
     },
-    "description": {
-      "type": "richtext"
+    "slug": {
+      "type": "uid",
+      "targetField": "name",
+      "required": true
+    },
+    "order": {
+      "type": "integer",
+      "default": 0
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
     },
     "places": {
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::place.place",
-      "mappedBy": "area"
-    },
-    "routes": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::route.route",
       "mappedBy": "area"
     }
   }
