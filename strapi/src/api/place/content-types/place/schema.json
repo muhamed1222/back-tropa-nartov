@@ -105,6 +105,13 @@
     "is_active": {
       "type": "boolean",
       "default": true
+    },
+    "rating": {
+      "type": "decimal",
+      "required": false,
+      "default": 3.5,
+      "min": 0.0,
+      "max": 5.0
     }
   }
 }

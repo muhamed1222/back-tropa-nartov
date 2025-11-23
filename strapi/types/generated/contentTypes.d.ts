@@ -533,6 +533,15 @@ export interface ApiPlacePlace extends Schema.CollectionType {
         maxLength: 50;
       }>;
     publishedAt: Attribute.DateTime;
+    rating: Attribute.Decimal &
+      Attribute.SetMinMax<
+        {
+          max: 5;
+          min: 0;
+        },
+        number
+      > &
+      Attribute.DefaultTo<3.5>;
     reviews: Attribute.Relation<
       'api::place.place',
       'oneToMany',
@@ -710,6 +719,15 @@ export interface ApiRouteRoute extends Schema.CollectionType {
       'api::place.place'
     >;
     publishedAt: Attribute.DateTime;
+    rating: Attribute.Decimal &
+      Attribute.SetMinMax<
+        {
+          max: 5;
+          min: 0;
+        },
+        number
+      > &
+      Attribute.DefaultTo<3.5>;
     reviews: Attribute.Relation<
       'api::route.route',
       'oneToMany',

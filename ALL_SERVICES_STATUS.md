@@ -1,6 +1,7 @@
 # 🎯 Статус всех сервисов - Тропа Нартов
 
-**Дата проверки:** 21 ноября 2025, 08:36 MSK
+**Дата проверки:** 21 ноября 2025  
+**Статус миграции:** ✅ Полностью мигрировано на Strapi
 
 ---
 
@@ -8,13 +9,9 @@
 
 | # | Сервис | Статус | Порт | Доступ |
 |---|--------|--------|------|--------|
-| 1 | **Go API Backend** | ✅ Running | 8001 | http://localhost:8001 |
-| 2 | **Strapi CMS** | ✅ Running | 1337 | http://localhost:1337/admin |
-| 3 | **PostgreSQL** | ✅ Healthy | 5432 | localhost:5432 |
-| 4 | **MongoDB** | ✅ Healthy | 27017 | localhost:27017 |
-| 5 | **Redis** | ✅ Healthy | 6379 | localhost:6379 |
-| 6 | **RabbitMQ** | ✅ Healthy | 5672, 15672 | http://localhost:15672 |
-| 7 | **Adminer** | ✅ Running | 8080 | http://localhost:8080 |
+| 1 | **Strapi CMS** | ✅ Running | 1337 | http://localhost:1337/admin |
+| 2 | **PostgreSQL** (опционально) | ⚠️ Для production | 5432 | localhost:5432 |
+| 3 | **SQLite** (dev) | ✅ Active | - | .tmp/data.db |
 
 ---
 
@@ -27,111 +24,77 @@ Email: admin@example.com
 Password: Admin123!
 ```
 
-### Go API Test User
-```
-Email: test-new@test.com
-Password: Test123!
-ID: 1
-```
-
-### PostgreSQL
+### PostgreSQL (только для production)
 ```
 Host: localhost
 Port: 5432
 User: postgres
 Password: postgres
-Database: tropa_nartov
-```
-
-### RabbitMQ Management
-```
-URL: http://localhost:15672
-User: (из .env)
-Password: (из .env)
+Database: strapi
 ```
 
 ---
 
 ## 📊 Статистика данных
 
-### Go API Backend
-- **Places:** 7
-- **Routes:** 2
-- **Users:** 1
-- **Reviews:** (в зависимости от данных)
-
 ### Strapi CMS
-- **Admin users:** 2
-- **Content types:** Настроены (Route, Place, Review и др.)
+- **Places:** 6+
+- **Routes:** 6+
+- **Users:** Зависит от регистраций
+- **Reviews:** Зависит от данных
+- **Content types:** Настроены (Route, Place, Review, Favorite, VisitedPlace и др.)
 - **Components:** route-stop ✅
 
 ---
 
 ## 🧪 Быстрая проверка
 
-### 1. Go API
+### Strapi API
 ```bash
-# Ping
-curl http://localhost:8001/ping
+# Health check
+curl http://localhost:1337/_health
 
-# Получить места
-curl http://localhost:8001/places
-
-# Получить маршруты
-curl http://localhost:8001/routes
-```
-
-### 2. Strapi API
-```bash
 # Получить маршруты через Strapi
 curl http://localhost:1337/api/routes
 
 # Получить места через Strapi
 curl http://localhost:1337/api/places
+
+# Авторизация
+curl -X POST http://localhost:1337/api/auth/local \
+  -H "Content-Type: application/json" \
+  -d '{"identifier":"user@example.com","password":"password"}'
 ```
 
 ---
 
 ## 🔄 Управление сервисами
 
-### Go API Backend
-```bash
-# Остановить
-lsof -ti:8001 | xargs kill -9
-
-# Запустить
-cd "/Users/kelemetovmuhamed/Documents/тропа нартов /back"
-go run ./cmd/api/main.go > server.log 2>&1 &
-
-# Просмотр логов
-tail -f server.log
-```
-
 ### Strapi CMS
 ```bash
 # Перезапустить
-docker restart tropa-strapi-dev
+cd /back/strapi
+npm run develop
+
+# Production build
+npm run build
+NODE_ENV=production npm start
 
 # Просмотр логов
-docker logs tropa-strapi-dev -f
-
-# Остановить
-docker stop tropa-strapi-dev
-
-# Запустить
-docker start tropa-strapi-dev
+# Логи выводятся в консоль при запуске
 ```
 
-### Инфраструктура (PostgreSQL, MongoDB, etc.)
+### Docker (опционально)
 ```bash
-# Остановить все
-docker-compose down
-
-# Запустить все
-docker-compose up -d
+# Запуск через Docker Compose
+cd /back/strapi
+docker-compose -f docker-compose.production.yml up -d
 
 # Проверить статус
 docker ps
+
+# Остановить
+docker-compose -f docker-compose.production.yml down
 ```
 
 ---
@@ -144,63 +107,43 @@ docker ps
 │           /app-new-project/                          │
 └───────────────────┬─────────────────────────────────┘
                     │
+                    ▼
+        ┌───────────────────────┐
+        │     Strapi CMS        │
+        │     Port: 1337        │
+        │   (Единственный API)  │
+        └───────────┬───────────┘
+                    │
         ┌───────────┴───────────┐
         │                       │
         ▼                       ▼
 ┌───────────────┐      ┌───────────────┐
-│   Go API      │      │   Strapi CMS  │
-│   Port: 8001  │      │   Port: 1337  │
-└───────┬───────┘      └───────┬───────┘
-        │                      │
-        └──────────┬───────────┘
-                   │
-        ┌──────────┴──────────┐
-        │                     │
-        ▼                     ▼
-┌───────────────┐    ┌───────────────┐
-│  PostgreSQL   │    │    MongoDB    │
-│  Port: 5432   │    │  Port: 27017  │
-└───────────────┘    └───────────────┘
-        │
-        ├─────────────────┬─────────────┐
-        │                 │             │
-        ▼                 ▼             ▼
-┌───────────┐    ┌────────────┐  ┌─────────┐
-│   Redis   │    │  RabbitMQ  │  │ Adminer │
-│ Port:6379 │    │ Port: 5672 │  │Port:8080│
-└───────────┘    └────────────┘  └─────────┘
+│   SQLite      │      │  PostgreSQL   │
+│   (Dev)       │      │  (Production) │
+└───────────────┘      └───────────────┘
 ```
 
 ---
 
-## 📝 Что было сделано сегодня
+## 📝 Что было сделано
 
-### 1. Настройка Strapi
-- ✅ Обновлены модели Route и Place
-- ✅ Создан компонент route-stop
-- ✅ Добавлены lifecycle-хуки для автоматических расчетов
-- ✅ Исправлены связи между моделями
-- ✅ Создан администратор
-
-### 2. Запуск Go API
-- ✅ Выполнены миграции базы данных
-- ✅ Создана таблица users
-- ✅ Все endpoints доступны
-- ✅ Протестирована регистрация пользователя
-
-### 3. Инфраструктура
-- ✅ Все Docker контейнеры запущены
-- ✅ PostgreSQL работает корректно
-- ✅ Все сервисы в состоянии Healthy
+### ✅ Миграция завершена
+- ✅ Go API полностью удален
+- ✅ Все endpoints переведены на Strapi
+- ✅ Авторизация работает через Strapi
+- ✅ Профиль пользователя через Strapi
+- ✅ Избранное через Strapi
+- ✅ Отзывы через Strapi
+- ✅ Загрузка аватаров через Strapi Media Library
 
 ---
 
 ## 🚀 Готово к разработке!
 
 ### Для Backend разработки:
-1. ✅ Go API на порту 8001
-2. ✅ Strapi CMS на порту 1337
-3. ✅ Все базы данных работают
+1. ✅ Strapi CMS на порту 1337
+2. ✅ SQLite база данных (dev)
+3. ✅ Все endpoints доступны
 
 ### Для Frontend разработки:
 1. ✅ API endpoints доступны
@@ -218,13 +161,11 @@ docker ps
 
 | Файл | Описание |
 |------|----------|
+| `README.md` | Основная документация |
+| `STRAPI_SETUP.md` | Настройка Strapi |
 | `ROUTE_PLACE_SETUP_COMPLETE.md` | Настройка моделей Route/Place |
 | `QUICK_ROUTE_GUIDE.md` | Быстрое руководство по маршрутам |
-| `RESTART_SUCCESS.md` | Инструкция по Strapi |
 | `ADMIN_CREDENTIALS.md` | Учетные данные Strapi |
-| `GO_API_STARTED.md` | Статус Go API |
-| `HOW_TO_START.md` | Как запустить Backend |
-| `ALL_SERVICES_STATUS.md` | Этот файл |
 
 ---
 
@@ -235,8 +176,8 @@ docker ps
    - Проверить автоматический расчет расстояния
 
 2. ✅ **Интеграция с Flutter**
-   - Подключить Flutter app к Go API (8001)
-   - Подключить Flutter app к Strapi API (1337)
+   - Flutter app подключен к Strapi API (1337)
+   - Все функции работают через Strapi
 
 3. ✅ **Добавление контента**
    - Через Strapi админ-панель
@@ -251,5 +192,5 @@ docker ps
 
 **Всё готово к работе!** 🚀
 
-*Последнее обновление: 21.11.2025, 08:36 MSK*
-
+*Последнее обновление: 21.11.2025*  
+*Статус: ✅ Миграция на Strapi завершена*
