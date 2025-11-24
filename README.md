@@ -8,7 +8,10 @@ REST API backend для мобильного приложения "Тропа Н
 - [Установка](#установка)
 - [Конфигурация](#конфигурация)
 - [API Endpoints](#api-endpoints)
+- [Схема базы данных](#схема-базы-данных)
 - [Деплой](#деплой)
+- [Git-репозиторий](#git-репозиторий)
+- [Документация](#документация)
 
 ## 🏗️ Архитектура
 
@@ -331,12 +334,173 @@ docker build -t tropa-nartov-backend .
 docker run -p 1337:1337 tropa-nartov-backend
 ```
 
-## 📝 Документация Strapi
+## 🗄️ Схема базы данных
 
-Дополнительная информация:
-- [Официальная документация Strapi](https://docs.strapi.io/)
-- [REST API документация](https://docs.strapi.io/developer-docs/latest/developer-resources/database-apis-reference/rest-api.html)
-- [Filtering и Pagination](https://docs.strapi.io/developer-docs/latest/developer-resources/database-apis-reference/rest/filtering-locale-publication.html)
+### Основные сущности
+
+```
+┌─────────────────┐
+│     Area        │ (Районы)
+│  - id           │
+│  - name         │
+│  - slug         │
+│  - order        │
+│  - is_active    │
+└────────┬────────┘
+         │ 1
+         │
+         │ N
+┌────────▼────────┐
+│     Place       │ (Места)
+│  - id           │
+│  - name         │
+│  - slug         │
+│  - images       │
+│  - history      │
+│  - address      │
+│  - latitude     │
+│  - longitude    │
+│  - working_hours│
+│  - phone        │
+│  - website      │
+│  - rating       │
+│  - is_active    │
+└────────┬────────┘
+         │
+    ┌────┴────┬──────────────┬──────────────┬──────────────┐
+    │         │              │              │              │
+    │ N       │ N            │ N            │ N            │ N
+    │         │              │              │              │
+┌───▼───┐ ┌──▼──────┐  ┌─────▼─────┐  ┌─────▼─────┐  ┌────▼──────┐
+│Route  │ │Category │  │   Tag     │  │  Review   │  │ Favorite  │
+│       │ │         │  │           │  │           │  │           │
+│ - id  │ │ - id    │  │ - id      │  │ - id      │  │ - id      │
+│ - name│ │ - name  │  │ - name    │  │ - rating  │  │ - user_id │
+│ - slug│ │ - slug  │  │ - slug    │  │ - text    │  │           │
+│       │ │         │  │           │  │           │  │           │
+└───┬───┘ └─────────┘  └───────────┘  └───────────┘  └───────────┘
+    │
+    │ N
+    │
+┌───▼────────┐
+│ RouteType  │ (Типы маршрутов)
+│  - id      │
+│  - name    │
+│  - slug    │
+│  - order   │
+│  - is_active│
+└────────────┘
+
+┌─────────────────┐
+│  VisitedPlace   │ (История посещений)
+│  - id           │
+│  - user_id      │
+│  - visited_at   │
+└─────────────────┘
+```
+
+### Связи между сущностями
+
+| Сущность 1 | Связь | Сущность 2 | Описание |
+|------------|-------|------------|----------|
+| `Area` | 1:N | `Place` | Один район может содержать много мест |
+| `Place` | N:M | `Route` | Места могут входить в несколько маршрутов |
+| `Place` | N:M | `Category` | Место может иметь несколько категорий |
+| `Place` | N:M | `Tag` | Место может иметь несколько тегов |
+| `Route` | N:1 | `RouteType` | Маршрут принадлежит одному типу |
+| `Place` | 1:N | `Review` | Место может иметь много отзывов |
+| `Route` | 1:N | `Review` | Маршрут может иметь много отзывов |
+| `Place` | 1:N | `Favorite` | Место может быть в избранном у многих пользователей |
+| `Route` | 1:N | `Favorite` | Маршрут может быть в избранном у многих пользователей |
+| `Place` | 1:N | `VisitedPlace` | Место может быть посещено многими пользователями |
+| `Route` | 1:N | `VisitedPlace` | Маршрут может быть пройден многими пользователями |
+
+### Описание таблиц
+
+#### `places` (Места)
+Основная сущность для хранения информации о достопримечательностях и местах.
+
+**Ключевые поля:**
+- `name` - название места (обязательное)
+- `slug` - уникальный идентификатор для URL
+- `latitude`, `longitude` - координаты для карты
+- `images` - массив изображений
+- `rating` - рейтинг (0.0 - 5.0)
+
+#### `routes` (Маршруты)
+Туристические маршруты, состоящие из нескольких мест.
+
+**Ключевые поля:**
+- `name` - название маршрута (обязательное)
+- `slug` - уникальный идентификатор
+- `description` - описание маршрута
+- `route_type` - связь с типом маршрута (пеший, авто и т.д.)
+- `places` - связь many-to-many с местами
+
+#### `reviews` (Отзывы)
+Отзывы пользователей о местах и маршрутах.
+
+**Ключевые поля:**
+- `rating` - оценка (1-5)
+- `text` - текст отзыва
+- `place` или `route` - связь с местом или маршрутом
+
+#### `categories` (Категории)
+Категории для фильтрации мест (например: "Музеи", "Парки", "Горы").
+
+#### `tags` (Теги)
+Теги для дополнительной фильтрации (например: "горы", "водопад", "река").
+
+#### `areas` (Районы)
+Районы Кабардино-Балкарии для географической фильтрации.
+
+#### `route_types` (Типы маршрутов)
+Типы маршрутов (например: "Пеший", "Автомобильный", "Велосипедный").
+
+#### `favorites` (Избранное)
+Избранные места и маршруты пользователей.
+
+**Ключевые поля:**
+- `user_id` - ID пользователя
+- `place` или `route` - связь с местом или маршрутом
+
+#### `visited_places` (История посещений)
+История посещений мест и прохождения маршрутов.
+
+**Ключевые поля:**
+- `user_id` - ID пользователя
+- `place` или `route` - связь с местом или маршрутом
+- `visited_at` - дата и время посещения
+
+## 🔗 Git-репозиторий
+
+**Репозиторий:** [https://github.com/muhamed1222/back-tropa-nartov.git](https://github.com/muhamed1222/back-tropa-nartov.git)
+
+**Финальная ветка:** `main`
+
+### Клонирование репозитория
+
+```bash
+git clone https://github.com/muhamed1222/back-tropa-nartov.git
+cd back-tropa-nartov
+git checkout main
+```
+
+## 📚 Документация
+
+### Официальная документация Strapi
+
+- **[Strapi Documentation](https://docs.strapi.io/)** - Полная документация Strapi CMS
+- **[REST API Reference](https://docs.strapi.io/developer-docs/latest/developer-resources/database-apis-reference/rest-api.html)** - Справочник по REST API
+- **[Filtering и Pagination](https://docs.strapi.io/developer-docs/latest/developer-resources/database-apis-reference/rest/filtering-locale-publication.html)** - Фильтрация и пагинация данных
+- **[Content Types](https://docs.strapi.io/developer-docs/latest/development/backend-customization/models.html)** - Работа с типами контента
+- **[Authentication](https://docs.strapi.io/developer-docs/latest/plugins/users-permissions.html)** - Аутентификация и авторизация
+
+### Полезные ссылки
+
+- **[Strapi Admin Panel Guide](https://docs.strapi.io/user-docs/latest/getting-started/introduction.html)** - Руководство по админ-панели
+- **[Deployment Guide](https://docs.strapi.io/developer-docs/latest/setup-deployment-guides/deployment.html)** - Руководство по деплою
+- **[Database Configuration](https://docs.strapi.io/developer-docs/latest/setup-deployment-guides/configurations/databases.html)** - Настройка баз данных
 
 ## 📄 Лицензия
 
