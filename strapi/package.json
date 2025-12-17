@@ -1,0 +1,35 @@
+{
+  "name": "tropa-nartov-strapi",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Strapi админ-панель для проекта Тропа Нартов",
+  "scripts": {
+    "develop": "strapi develop",
+    "start": "strapi start",
+    "build": "strapi build",
+    "strapi": "strapi"
+  },
+  "dependencies": {
+    "@strapi/plugin-i18n": "^4.24.0",
+    "@strapi/plugin-users-permissions": "^4.24.0",
+    "@strapi/strapi": "^4.24.0",
+    "axios": "^1.13.2",
+    "better-sqlite3": "^12.4.1",
+    "pg": "^8.11.3",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "react-router-dom": "^5.2.0",
+    "styled-components": "^5.2.1"
+  },
+  "author": {
+    "name": "Тропа Нартов"
+  },
+  "strapi": {
+    "uuid": "tropa-nartov-strapi-uuid"
+  },
+  "engines": {
+    "node": ">=18.0.0 <=22.x.x",
+    "npm": ">=6.0.0"
+  },
+  "license": "MIT"
+}

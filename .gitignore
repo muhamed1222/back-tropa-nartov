@@ -1,0 +1,44 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Binaries
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+main
+api
+
+# Test binaries
+*.test
+*.out
+
+# Log files
+*.log
+server.pid
+
+# Temporary files
+tmp/
+temp/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Uploads
+uploads/
+
+# Build artifacts
+dist/
+build/
+
